@@ -65,7 +65,7 @@ export function CreateKeyDialog({
 }: CreateKeyDialogProps) {
   const { username } = useAuth();
   const workspace = username ?? "anonymous";
-  const createKey = useMutation(api.example.createKey);
+  const createKey = useMutation(api.keys.createKey);
   const [step, setStep] = useState<"form" | "reveal">("form");
   const [name, setName] = useState("");
   const [permissions, setPermissions] = useState<Permission[]>([

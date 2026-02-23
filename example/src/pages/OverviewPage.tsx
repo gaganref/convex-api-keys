@@ -74,7 +74,7 @@ function OverviewLoadingState() {
 
 export function OverviewPage() {
   const { username } = useAuth();
-  const data = useQuery(api.example.dashboardData, {
+  const data = useQuery(api.dashboard.dashboardData, {
     workspace: username ?? "anonymous",
   });
   if (data === undefined) {

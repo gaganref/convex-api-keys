@@ -84,7 +84,7 @@ export function AuditLogSheet({
   const { username } = useAuth();
   const workspace = username ?? "anonymous";
   const { results, status, loadMore } = usePaginatedQuery(
-    api.example.listKeyEvents,
+    api.keys.listKeyEvents,
     apiKey
       ? {
           workspace,

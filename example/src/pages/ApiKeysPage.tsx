@@ -30,9 +30,9 @@ export function ApiKeysPage() {
   const [bulkRevoking, setBulkRevoking] = useState(false);
   const [bulkError, setBulkError] = useState<string | null>(null);
   const [bulkInfo, setBulkInfo] = useState<string | null>(null);
-  const revokeAllKeys = useMutation(api.example.revokeAllKeys);
-  const counts = useQuery(api.example.keyCounts, { workspace });
-  const hookSummary = useQuery(api.example.invalidateHookSummary);
+  const revokeAllKeys = useMutation(api.keys.revokeAllKeys);
+  const counts = useQuery(api.keys.keyCounts, { workspace });
+  const hookSummary = useQuery(api.dashboard.invalidateHookSummary);
   const prodActive = counts?.productionActive;
   const testActive = counts?.testingActive;
 

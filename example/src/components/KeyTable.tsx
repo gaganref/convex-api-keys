@@ -100,13 +100,13 @@ export function KeyTable({ namespace }: KeyTableProps) {
   const { username } = useAuth();
   const workspace = username ?? "anonymous";
   const { results, status, loadMore } = usePaginatedQuery(
-    api.example.listKeys,
+    api.keys.listKeys,
     { workspace, environment: namespace },
     { initialNumItems: 20 },
   );
-  const revokeKey = useMutation(api.example.revokeKey);
-  const rotateKey = useMutation(api.example.rotateKey);
-  const updateKey = useMutation(api.example.updateKey);
+  const revokeKey = useMutation(api.keys.revokeKey);
+  const rotateKey = useMutation(api.keys.rotateKey);
+  const updateKey = useMutation(api.keys.updateKey);
   const [auditKey, setAuditKey] = useState<MockApiKey | null>(null);
   const [rotateCandidate, setRotateCandidate] = useState<MockApiKey | null>(
     null,

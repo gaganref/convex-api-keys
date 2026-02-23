@@ -4,11 +4,11 @@ import { describe, expect, test } from "vitest";
 import { api } from "./_generated/api.js";
 import { initConvexTest } from "./setup.test.js";
 
-describe("example", () => {
+describe("keys", () => {
   test("createKey creates a key and listKeys returns it", async () => {
     const t = initConvexTest();
 
-    const created = await t.mutation(api.example.createKey, {
+    const created = await t.mutation(api.keys.createKey, {
       workspace: "acme",
       environment: "production",
       name: "Backend Server",
@@ -20,7 +20,7 @@ describe("example", () => {
     expect(created.keyId).toBeTypeOf("string");
     expect(created.token).toMatch(/^ak_/);
 
-    const listed = await t.query(api.example.listKeys, {
+    const listed = await t.query(api.keys.listKeys, {
       workspace: "acme",
       environment: "production",
       paginationOpts: {
@@ -39,7 +39,7 @@ describe("example", () => {
   test("revokeKey revokes active key and records revoked event", async () => {
     const t = initConvexTest();
 
-    const created = await t.mutation(api.example.createKey, {
+    const created = await t.mutation(api.keys.createKey, {
       workspace: "acme",
       environment: "testing",
       name: "Worker",
@@ -48,7 +48,7 @@ describe("example", () => {
       idleTimeoutMs: null,
     });
 
-    const revoked = await t.mutation(api.example.revokeKey, {
+    const revoked = await t.mutation(api.keys.revokeKey, {
       workspace: "acme",
       environment: "testing",
       keyId: created.keyId,
@@ -57,7 +57,7 @@ describe("example", () => {
 
     expect(revoked.ok).toBe(true);
 
-    const keys = await t.query(api.example.listKeys, {
+    const keys = await t.query(api.keys.listKeys, {
       workspace: "acme",
       environment: "testing",
       paginationOpts: {
@@ -69,7 +69,7 @@ describe("example", () => {
       keys.page.find((entry) => entry.keyId === created.keyId)?.status,
     ).toBe("revoked");
 
-    const events = await t.query(api.example.listKeyEvents, {
+    const events = await t.query(api.keys.listKeyEvents, {
       workspace: "acme",
       environment: "testing",
       keyId: created.keyId,
@@ -84,7 +84,7 @@ describe("example", () => {
   test("rotateKey returns new token and revokes old key", async () => {
     const t = initConvexTest();
 
-    const created = await t.mutation(api.example.createKey, {
+    const created = await t.mutation(api.keys.createKey, {
       workspace: "acme",
       environment: "production",
       name: "Edge Processor",
@@ -93,7 +93,7 @@ describe("example", () => {
       idleTimeoutMs: null,
     });
 
-    const rotated = await t.mutation(api.example.rotateKey, {
+    const rotated = await t.mutation(api.keys.rotateKey, {
       workspace: "acme",
       environment: "production",
       keyId: created.keyId,
@@ -109,7 +109,7 @@ describe("example", () => {
     expect(rotated.replacedKeyId).toBe(created.keyId);
     expect(rotated.token).toMatch(/^ak_/);
 
-    const keys = await t.query(api.example.listKeys, {
+    const keys = await t.query(api.keys.listKeys, {
       workspace: "acme",
       environment: "production",
       paginationOpts: {
@@ -127,7 +127,7 @@ describe("example", () => {
   test("revokeKey returns revoked when key already revoked", async () => {
     const t = initConvexTest();
 
-    const created = await t.mutation(api.example.createKey, {
+    const created = await t.mutation(api.keys.createKey, {
       workspace: "acme",
       environment: "testing",
       name: "Already Revoked",
@@ -136,14 +136,14 @@ describe("example", () => {
       idleTimeoutMs: null,
     });
 
-    await t.mutation(api.example.revokeKey, {
+    await t.mutation(api.keys.revokeKey, {
       workspace: "acme",
       environment: "testing",
       keyId: created.keyId,
       reason: "first_revoke",
     });
 
-    const second = await t.mutation(api.example.revokeKey, {
+    const second = await t.mutation(api.keys.revokeKey, {
       workspace: "acme",
       environment: "testing",
       keyId: created.keyId,

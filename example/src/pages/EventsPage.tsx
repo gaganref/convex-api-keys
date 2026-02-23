@@ -170,12 +170,12 @@ export function EventsPage() {
   const { username } = useAuth();
   const workspace = username ?? "anonymous";
   const [activeTab, setActiveTab] = useState<Environment>("production");
-  const production = useQuery(api.example.trackedEventsByNamespace, {
+  const production = useQuery(api.events.trackedEventsByNamespace, {
     workspace,
     environment: environments[0],
     limit: 100,
   });
-  const testing = useQuery(api.example.trackedEventsByNamespace, {
+  const testing = useQuery(api.events.trackedEventsByNamespace, {
     workspace,
     environment: environments[1],
     limit: 100,

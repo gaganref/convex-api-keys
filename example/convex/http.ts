@@ -207,7 +207,7 @@ const track = httpAction(async (ctx, req) => {
       ? ((props as { user_id: string }).user_id ?? "anonymous")
       : "anonymous";
 
-  const recorded = await ctx.runMutation(internal.example.recordTrackedEvent, {
+  const recorded = await ctx.runMutation(internal.events.recordTrackedEvent, {
     userId,
     namespace: auth.namespace,
     keyId: String(auth.validated.keyId),
@@ -238,7 +238,7 @@ const events = httpAction(async (ctx, req) => {
   const parsedLimit = rawLimit === null ? undefined : Number(rawLimit);
   const limit = Number.isFinite(parsedLimit) ? parsedLimit : undefined;
 
-  const result = await ctx.runQuery(internal.example.listTrackedEvents, {
+  const result = await ctx.runQuery(internal.events.listTrackedEvents, {
     namespace: auth.namespace,
     limit,
   });
@@ -263,7 +263,7 @@ const stats = httpAction(async (ctx, req) => {
     return auth.response;
   }
 
-  const statsResult = await ctx.runQuery(internal.example.trackedEventStats, {
+  const statsResult = await ctx.runQuery(internal.events.trackedEventStats, {
     namespace: auth.namespace,
   });
 
