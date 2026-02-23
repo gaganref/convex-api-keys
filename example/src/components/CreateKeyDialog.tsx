@@ -45,9 +45,20 @@ const PERMISSIONS: { id: Permission; label: string; description: string }[] = [
 
 const EXPIRY_OPTIONS = [
   { value: "never", label: "Never" },
+  { value: "1", label: "1 day" },
   { value: "7", label: "7 days" },
   { value: "30", label: "30 days" },
   { value: "90", label: "90 days" },
+  { value: "365", label: "1 year" },
+];
+
+const IDLE_TIMEOUT_OPTIONS = [
+  { value: "1h", label: "1 hour", ms: 3_600_000 },
+  { value: "6h", label: "6 hours", ms: 21_600_000 },
+  { value: "12h", label: "12 hours", ms: 43_200_000 },
+  { value: "1d", label: "1 day", ms: 86_400_000 },
+  { value: "7d", label: "7 days", ms: 604_800_000 },
+  { value: "30d", label: "30 days", ms: 2_592_000_000 },
 ];
 
 type CreateKeyDialogProps = {
@@ -56,6 +67,20 @@ type CreateKeyDialogProps = {
   namespace: Environment;
   onCreated: () => void;
 };
+
+function resetFormState() {
+  return {
+    step: "form" as const,
+    name: "",
+    permissions: ["events:write"] as Permission[],
+    expiry: "never",
+    idleEnabled: false,
+    idleTimeout: "1d",
+    generatedToken: "",
+    errors: {} as { name?: string; permissions?: string },
+    submitError: null as string | null,
+  };
+}
 
 export function CreateKeyDialog({
   open,
@@ -73,7 +98,7 @@ export function CreateKeyDialog({
   ]);
   const [expiry, setExpiry] = useState("never");
   const [idleEnabled, setIdleEnabled] = useState(false);
-  const [idleMs, setIdleMs] = useState("3600000");
+  const [idleTimeout, setIdleTimeout] = useState("1d");
   const [generatedToken, setGeneratedToken] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ name?: string; permissions?: string }>(
@@ -88,6 +113,12 @@ export function CreateKeyDialog({
     setErrors((e) => ({ ...e, permissions: undefined }));
   }
 
+  function resolveIdleTimeoutMs(): number | null {
+    if (!idleEnabled) return null;
+    const option = IDLE_TIMEOUT_OPTIONS.find((o) => o.value === idleTimeout);
+    return option?.ms ?? null;
+  }
+
   async function handleSubmit() {
     const newErrors: typeof errors = {};
     if (!name.trim()) newErrors.name = "Name is required.";
@@ -95,14 +126,6 @@ export function CreateKeyDialog({
       newErrors.permissions = "Select at least one permission.";
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      return;
-    }
-
-    if (
-      idleEnabled &&
-      (!Number.isFinite(Number(idleMs)) || Number(idleMs) <= 0)
-    ) {
-      setSubmitError("Idle timeout must be a positive number of milliseconds.");
       return;
     }
 
@@ -115,7 +138,7 @@ export function CreateKeyDialog({
         name: name.trim(),
         permissions,
         ttlDays: expiry === "never" ? null : Number(expiry),
-        idleTimeoutMs: idleEnabled ? Number(idleMs) : null,
+        idleTimeoutMs: resolveIdleTimeoutMs(),
       });
       setGeneratedToken(result.token);
       setStep("reveal");
@@ -128,34 +151,30 @@ export function CreateKeyDialog({
     }
   }
 
+  function resetForm() {
+    const defaults = resetFormState();
+    setStep(defaults.step);
+    setName(defaults.name);
+    setPermissions(defaults.permissions);
+    setExpiry(defaults.expiry);
+    setIdleEnabled(defaults.idleEnabled);
+    setIdleTimeout(defaults.idleTimeout);
+    setGeneratedToken(defaults.generatedToken);
+    setErrors(defaults.errors);
+    setSubmitError(defaults.submitError);
+  }
+
   function handleDone() {
     onCreated();
     onOpenChange(false);
-    // Reset form for next open
-    setTimeout(() => {
-      setStep("form");
-      setName("");
-      setPermissions(["events:write"]);
-      setExpiry("never");
-      setIdleEnabled(false);
-      setIdleMs("3600000");
-      setErrors({});
-      setSubmitError(null);
-    }, 300);
+    setTimeout(resetForm, 300);
   }
 
-  function handleOpenChange(open: boolean) {
-    if (!open) {
-      setTimeout(() => {
-        setStep("form");
-        setName("");
-        setPermissions(["events:write"]);
-        setExpiry("never");
-        setIdleEnabled(false);
-        setErrors({});
-      }, 300);
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen) {
+      setTimeout(resetForm, 300);
     }
-    onOpenChange(open);
+    onOpenChange(nextOpen);
   }
 
   return (
@@ -167,8 +186,8 @@ export function CreateKeyDialog({
           </DialogTitle>
           <DialogDescription className="text-xs">
             {step === "form"
-              ? `New key for the ${namespace} namespace.`
-              : "Copy and save your key before continuing."}
+              ? `New key for the ${namespace} environment.`
+              : "Copy and save your key before continuing. You won't be able to see it again."}
           </DialogDescription>
         </DialogHeader>
 
@@ -227,7 +246,7 @@ export function CreateKeyDialog({
 
             {/* Expiry */}
             <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">Expiry</Label>
+              <Label className="text-xs">Expiry (TTL)</Label>
               <Select
                 value={expiry}
                 onValueChange={(v) => {
@@ -249,14 +268,22 @@ export function CreateKeyDialog({
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Key automatically expires after this duration.
+              </p>
             </div>
 
             {/* Idle timeout */}
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="idle-toggle" className="text-xs">
-                  Idle timeout
-                </Label>
+                <div className="flex flex-col gap-0.5">
+                  <Label htmlFor="idle-toggle" className="text-xs">
+                    Idle timeout
+                  </Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    Revoke if unused for this duration.
+                  </p>
+                </div>
                 <Switch
                   id="idle-toggle"
                   checked={idleEnabled}
@@ -264,18 +291,27 @@ export function CreateKeyDialog({
                 />
               </div>
               {idleEnabled && (
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    value={idleMs}
-                    onChange={(e) => setIdleMs(e.target.value)}
-                    className="font-mono text-xs"
-                    min={60000}
-                  />
-                  <span className="text-xs text-muted-foreground shrink-0">
-                    ms
-                  </span>
-                </div>
+                <Select
+                  value={idleTimeout}
+                  onValueChange={(v) => {
+                    if (v !== null) setIdleTimeout(v);
+                  }}
+                >
+                  <SelectTrigger className="text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {IDLE_TIMEOUT_OPTIONS.map((opt) => (
+                      <SelectItem
+                        key={opt.value}
+                        value={opt.value}
+                        className="text-xs"
+                      >
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
             </div>
 

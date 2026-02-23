@@ -8,8 +8,14 @@ export const apiKeys = new ApiKeys<{
   permissions: { beacon: Array<"events:write" | "reports:read" | "admin"> };
 }>(components.apiKeys, {
   permissionDefaults: {
-    beacon: ["events:write", "reports:read", "admin"],
+    beacon: ["reports:read"],
   },
+  keyDefaults: {
+    prefix: "sk_",
+    ttlMs: 90 * 24 * 60 * 60 * 1000, // 90 days
+    idleTimeoutMs: 30 * 24 * 60 * 60 * 1000, // 30 days
+  },
+  logLevel: "debug",
 }).withHooks({
   onInvalidate: internal.hooks.onInvalidate,
 });

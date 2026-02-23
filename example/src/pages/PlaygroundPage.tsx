@@ -80,40 +80,44 @@ const ENDPOINTS: Endpoint[] = [
   },
 ];
 
-type Scenario = {
+type BodyPreset = {
   label: string;
-  endpointId: string;
-  apiKey: string;
-  body?: string;
+  body: string;
 };
 
-const PRESET_SCENARIOS: Scenario[] = [
+const BODY_PRESETS: BodyPreset[] = [
   {
-    label: "Happy Path",
-    endpointId: "track",
-    apiKey: "ak_MnABCDEF0123456789abcdefghijklmnopqrstuvwxyzABCDEFGH",
+    label: "Page View",
     body: JSON.stringify(
-      { event: "page_view", properties: { url: "/" } },
+      {
+        event: "page_view",
+        properties: { url: "/dashboard", user_id: "usr_123" },
+      },
       null,
       2,
     ),
   },
   {
-    label: "Wrong Permissions",
-    endpointId: "events",
-    apiKey: "ak_KxABCDEF0123456789abcdefghijklmnopqrstuvwxyzABCDEFGH",
+    label: "Purchase",
+    body: JSON.stringify(
+      {
+        event: "purchase",
+        properties: { amount: 49.99, currency: "USD", user_id: "usr_456" },
+      },
+      null,
+      2,
+    ),
   },
   {
-    label: "Revoked Key",
-    endpointId: "track",
-    apiKey: "ak_QvREVOKED0123456789abcdefghijklmnopqrstuvwxyzABCDEFGH",
-    body: JSON.stringify({ event: "test" }, null, 2),
-  },
-  {
-    label: "Rate Limited",
-    endpointId: "track",
-    apiKey: "ak_MnABCDEF0123456789abcdefghijklmnopqrstuvwxyzABCDEFGH",
-    body: JSON.stringify({ event: "spam_event" }, null, 2),
+    label: "Sign Up",
+    body: JSON.stringify(
+      {
+        event: "sign_up",
+        properties: { method: "google", plan: "pro" },
+      },
+      null,
+      2,
+    ),
   },
 ];
 
@@ -233,7 +237,6 @@ export function PlaygroundPage() {
   const [loading, setLoading] = useState(false);
   const [curlOpen, setCurlOpen] = useState(false);
   const [curlCopied, setCurlCopied] = useState(false);
-  const [activeScenario, setActiveScenario] = useState<string | null>(null);
 
   const endpoint = ENDPOINTS.find((e) => e.id === endpointId)!;
 
@@ -242,19 +245,6 @@ export function PlaygroundPage() {
     const ep = ENDPOINTS.find((e) => e.id === id)!;
     setBody(ep.defaultBody ?? "");
     setResponse(null);
-    setActiveScenario(null);
-  }
-
-  function applyScenario(scenario: Scenario) {
-    setEndpointId(scenario.endpointId);
-    setApiKey(scenario.apiKey);
-    setBody(
-      scenario.body ??
-        ENDPOINTS.find((e) => e.id === scenario.endpointId)?.defaultBody ??
-        "",
-    );
-    setResponse(null);
-    setActiveScenario(scenario.label);
   }
 
   async function handleSend() {
@@ -317,24 +307,9 @@ export function PlaygroundPage() {
       <div>
         <h2 className="text-base font-semibold">Playground</h2>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Test your API keys against the Beacon HTTP endpoints.
+          Test your API keys against the Beacon HTTP endpoints. Paste a key
+          token from the API Keys page to get started.
         </p>
-      </div>
-
-      {/* Preset scenarios */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-xs text-muted-foreground">Presets:</span>
-        {PRESET_SCENARIOS.map((s) => (
-          <Button
-            key={s.label}
-            variant={activeScenario === s.label ? "secondary" : "outline"}
-            size="sm"
-            className="h-7 text-xs"
-            onClick={() => applyScenario(s)}
-          >
-            {s.label}
-          </Button>
-        ))}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-5">
@@ -375,39 +350,11 @@ export function PlaygroundPage() {
 
           {/* API key input */}
           <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs">API Key</Label>
-              <DropdownMenu>
-                <DropdownMenuTrigger className="inline-flex items-center justify-center h-6 text-xs px-2 gap-1 rounded-none hover:bg-accent hover:text-accent-foreground">
-                  Use sample
-                  <CaretDown size={10} />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="text-xs w-56">
-                  {PRESET_SCENARIOS.map((scenario) => (
-                    <DropdownMenuItem
-                      key={scenario.label}
-                      className="text-xs gap-2"
-                      onClick={() => {
-                        setApiKey(scenario.apiKey);
-                        setActiveScenario(scenario.label);
-                      }}
-                    >
-                      <span className="flex-1 truncate">{scenario.label}</span>
-                      <span className="text-muted-foreground font-mono">
-                        {scenario.endpointId}
-                      </span>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+            <Label className="text-xs">API Key</Label>
             <Input
-              placeholder="ak_..."
+              placeholder="sk_..."
               value={apiKey}
-              onChange={(e) => {
-                setApiKey(e.target.value);
-                setActiveScenario(null);
-              }}
+              onChange={(e) => setApiKey(e.target.value)}
               className="font-mono text-xs"
             />
           </div>
@@ -415,7 +362,26 @@ export function PlaygroundPage() {
           {/* Body (only for POST) */}
           {endpoint.method === "POST" && (
             <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">Body</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Body</Label>
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="inline-flex items-center justify-center h-6 text-xs px-2 gap-1 rounded-none hover:bg-accent hover:text-accent-foreground">
+                    Sample body
+                    <CaretDown size={10} />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="text-xs w-40">
+                    {BODY_PRESETS.map((preset) => (
+                      <DropdownMenuItem
+                        key={preset.label}
+                        className="text-xs"
+                        onClick={() => setBody(preset.body)}
+                      >
+                        {preset.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
               <Textarea
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
