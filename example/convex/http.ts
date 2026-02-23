@@ -7,7 +7,6 @@ import { apiKeys } from "./apiKeys.js";
 
 const http = httpRouter();
 const cors = corsRouter(http, {
-  // Add your frontend URL here as required
   allowedOrigins: [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
@@ -17,6 +16,8 @@ const cors = corsRouter(http, {
   allowedHeaders: ["Content-Type", "x-api-key", "authorization"],
   browserCacheMaxAge: 86400,
 });
+
+const PERMISSION_DOMAIN = "beacon";
 
 function json(status: number, body: unknown) {
   return new Response(JSON.stringify(body), {
@@ -48,44 +49,27 @@ function readApiKey(req: Request) {
 const MISSING_KEY_MESSAGE =
   "No API key provided. Use x-api-key or Authorization: Bearer <key>.";
 
-function permissionGranted(
-  permissions: Record<string, readonly string[]> | undefined,
-  required: string,
-) {
-  if (required === "any") {
-    return true;
-  }
-  return permissions?.beacon?.includes(required) ?? false;
-}
-
-function asNamespace(value: string | undefined) {
-  if (!value) {
-    return null;
-  }
-
-  const separatorIndex = value.lastIndexOf(":");
-  if (separatorIndex <= 0 || separatorIndex >= value.length - 1) {
-    return null;
-  }
-
-  const environment = value.slice(separatorIndex + 1);
-  if (environment !== "production" && environment !== "testing") {
-    return null;
-  }
-
-  return value;
-}
-
 type ValidateSuccess = Extract<
   Awaited<ReturnType<typeof apiKeys.validate>>,
   { ok: true }
 >;
 
+type BeaconPermission = NonNullable<
+  ValidateSuccess["permissions"]
+>[typeof PERMISSION_DOMAIN][number];
+
+function permissionGranted(
+  permissions: ValidateSuccess["permissions"],
+  required: BeaconPermission,
+) {
+  const granted = permissions?.[PERMISSION_DOMAIN];
+  return granted?.includes("admin") || granted?.includes(required) || false;
+}
+
 async function authenticate(
   ctx: ActionCtx,
   req: Request,
-  endpoint: string,
-  requiredPermission: string,
+  requiredPermission?: BeaconPermission,
 ): Promise<
   | {
       ok: true;
@@ -125,21 +109,21 @@ async function authenticate(
     };
   }
 
-  const permissions = validated.permissions as
-    | Record<string, readonly string[]>
-    | undefined;
-  if (!permissionGranted(permissions, requiredPermission)) {
+  if (
+    requiredPermission &&
+    !permissionGranted(validated.permissions, requiredPermission)
+  ) {
     return {
       ok: false,
       response: json(403, {
         error: "INSUFFICIENT_PERMISSIONS",
         required: requiredPermission,
-        granted: permissions?.beacon ?? [],
+        granted: validated.permissions?.[PERMISSION_DOMAIN] ?? [],
       }),
     };
   }
 
-  const namespace = asNamespace(validated.namespace);
+  const namespace = validated.namespace;
   if (!namespace) {
     return {
       ok: false,
@@ -152,8 +136,8 @@ async function authenticate(
 
   try {
     await apiKeys.touch(ctx, { keyId: validated.keyId });
-  } catch {
-    // Best effort: auth succeeds even if usage tracking fails.
+  } catch (err) {
+    console.warn("Failed to touch key usage:", err);
   }
 
   return {
@@ -171,7 +155,7 @@ const track = httpAction(async (ctx, req) => {
     });
   }
 
-  const auth = await authenticate(ctx, req, "/track", "events:write");
+  const auth = await authenticate(ctx, req, "events:write");
   if (!auth.ok) {
     return auth.response;
   }
@@ -193,7 +177,10 @@ const track = httpAction(async (ctx, req) => {
     });
   }
 
-  const event = (payload as { event?: unknown }).event;
+  const { event, properties } = payload as {
+    event?: unknown;
+    properties?: Record<string, unknown>;
+  };
   if (typeof event !== "string" || event.trim().length === 0) {
     return json(400, {
       error: "INVALID_BODY",
@@ -201,11 +188,13 @@ const track = httpAction(async (ctx, req) => {
     });
   }
 
-  const props = (payload as { properties?: unknown }).properties;
   const userId =
-    typeof (props as { user_id?: unknown } | undefined)?.user_id === "string"
-      ? ((props as { user_id: string }).user_id ?? "anonymous")
-      : "anonymous";
+    typeof properties?.user_id === "string" ? properties.user_id : "anonymous";
+
+  const props =
+    properties && typeof properties === "object" && !Array.isArray(properties)
+      ? properties
+      : undefined;
 
   const recorded = await ctx.runMutation(internal.events.recordTrackedEvent, {
     userId,
@@ -213,10 +202,7 @@ const track = httpAction(async (ctx, req) => {
     keyId: String(auth.validated.keyId),
     keyName: auth.validated.name ?? "Unnamed key",
     event: event.trim(),
-    props:
-      props && typeof props === "object" && !Array.isArray(props)
-        ? (props as Record<string, unknown>)
-        : undefined,
+    props,
   });
 
   return json(200, {
@@ -228,7 +214,7 @@ const track = httpAction(async (ctx, req) => {
 });
 
 const events = httpAction(async (ctx, req) => {
-  const auth = await authenticate(ctx, req, "/events", "reports:read");
+  const auth = await authenticate(ctx, req, "reports:read");
   if (!auth.ok) {
     return auth.response;
   }
@@ -245,7 +231,7 @@ const events = httpAction(async (ctx, req) => {
 
   return json(200, {
     ok: true,
-    events: result.events.map((row: (typeof result.events)[number]) => ({
+    events: result.events.map((row) => ({
       event: row.event,
       userId: row.userId,
       keyId: row.keyId,
@@ -258,7 +244,7 @@ const events = httpAction(async (ctx, req) => {
 });
 
 const stats = httpAction(async (ctx, req) => {
-  const auth = await authenticate(ctx, req, "/stats", "reports:read");
+  const auth = await authenticate(ctx, req, "reports:read");
   if (!auth.ok) {
     return auth.response;
   }
@@ -274,7 +260,7 @@ const stats = httpAction(async (ctx, req) => {
 });
 
 const me = httpAction(async (ctx, req) => {
-  const auth = await authenticate(ctx, req, "/me", "any");
+  const auth = await authenticate(ctx, req);
   if (!auth.ok) {
     return auth.response;
   }
