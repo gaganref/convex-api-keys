@@ -128,7 +128,7 @@ export async function listNamespaceKeyStats(
     ).length;
     for (const row of result.page) {
       if (row.name) {
-        namesById[String(row.keyId)] = row.name;
+        namesById[row.keyId] = row.name;
       }
     }
     if (result.isDone) {
@@ -162,7 +162,7 @@ async function keyExistsInNamespace(
         },
       });
 
-    if (result.page.some((row) => String(row.keyId) === keyId)) {
+    if (result.page.some((row) => row.keyId === keyId)) {
       return true;
     }
     if (result.isDone) {
@@ -254,7 +254,7 @@ export const revokeKey = mutation({
     }
     return {
       ok: true as const,
-      keyId: String(result.keyId),
+      keyId: result.keyId,
       revokedAt: result.revokedAt,
     };
   },
@@ -332,8 +332,8 @@ export const rotateKey = mutation({
 
     return {
       ...result,
-      keyId: String(result.keyId),
-      replacedKeyId: String(result.replacedKeyId),
+      keyId: result.keyId,
+      replacedKeyId: result.replacedKeyId,
     };
   },
 });
@@ -393,7 +393,7 @@ export const listKeys = query({
       isDone: result.isDone,
       continueCursor: result.continueCursor,
       page: result.page.map((row) => ({
-        keyId: String(row.keyId),
+        keyId: row.keyId,
         namespace,
         name: row.name,
         tokenPreview: `${row.tokenPrefix}...${row.tokenLast4}`,
@@ -439,8 +439,8 @@ export const listKeyEvents = query({
       isDone: result.isDone,
       continueCursor: result.continueCursor,
       page: result.page.map((event) => ({
-        eventId: String(event.eventId),
-        keyId: String(event.keyId),
+        eventId: event.eventId,
+        keyId: event.keyId,
         type: event.type,
         reason: event.reason,
         metadata: event.metadata,

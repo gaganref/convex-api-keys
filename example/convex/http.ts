@@ -199,7 +199,7 @@ const track = httpAction(async (ctx, req) => {
   const recorded = await ctx.runMutation(internal.events.recordTrackedEvent, {
     userId,
     namespace: auth.namespace,
-    keyId: String(auth.validated.keyId),
+    keyId: auth.validated.keyId,
     keyName: auth.validated.name ?? "Unnamed key",
     event: event.trim(),
     props,
@@ -207,7 +207,7 @@ const track = httpAction(async (ctx, req) => {
 
   return json(200, {
     ok: true,
-    eventId: String(recorded.eventId),
+    eventId: recorded.eventId,
     event: event.trim(),
     receivedAt: new Date(recorded.receivedAt).toISOString(),
   });
@@ -268,7 +268,7 @@ const me = httpAction(async (ctx, req) => {
   return json(200, {
     ok: true,
     key: {
-      keyId: String(auth.validated.keyId),
+      keyId: auth.validated.keyId,
       namespace: auth.validated.namespace ?? null,
       name: auth.validated.name ?? null,
       permissions: auth.validated.permissions ?? {},

@@ -154,9 +154,9 @@ export const dashboardData = query({
       uniqueEventTypes,
       chart,
       recentAudit: scopedAuditEvents.map((event) => ({
-        eventId: String(event.eventId),
-        keyId: String(event.keyId),
-        keyName: keyNames[String(event.keyId)] ?? "Unknown key",
+        eventId: event.eventId,
+        keyId: event.keyId,
+        keyName: keyNames[event.keyId] ?? "Unknown key",
         type: event.type,
         createdAt: event.createdAt,
       })),

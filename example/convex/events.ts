@@ -54,7 +54,7 @@ export const trackedEventsByNamespace = query({
       .take(cap);
 
     return rows.map((row) => ({
-      id: String(row._id),
+      id: row._id,
       event: row.event,
       userId: row.userId,
       keyId: row.keyId,
