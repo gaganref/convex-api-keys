@@ -3,6 +3,38 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      (function () {
+        var storageKey = "theme";
+        var mediaQuery = "(prefers-color-scheme: dark)";
+        var root = document.documentElement;
+
+        function isThemePreference(value) {
+          return value === "light" || value === "dark" || value === "system";
+        }
+
+        function getStoredTheme() {
+          try {
+            var stored = window.localStorage.getItem(storageKey);
+            return isThemePreference(stored) ? stored : "system";
+          } catch {
+            return "system";
+          }
+        }
+
+        var theme = getStoredTheme();
+        var resolved =
+          theme === "system"
+            ? window.matchMedia(mediaQuery).matches
+              ? "dark"
+              : "light"
+            : theme;
+
+        root.classList.toggle("dark", resolved === "dark");
+        root.style.colorScheme = resolved;
+        root.setAttribute("data-theme", theme);
+      })();
+    </script>
     <title>Example App</title>
   </head>
   <body>

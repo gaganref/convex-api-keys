@@ -8,8 +8,12 @@
  * @module
  */
 
+import type * as apiKeys from "../apiKeys.js";
+import type * as crons from "../crons.js";
 import type * as example from "../example.js";
+import type * as hooks from "../hooks.js";
 import type * as http from "../http.js";
+import type * as withApiKey from "../withApiKey.js";
 
 import type {
   ApiFromModules,
@@ -18,8 +22,12 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  apiKeys: typeof apiKeys;
+  crons: typeof crons;
   example: typeof example;
+  hooks: typeof hooks;
   http: typeof http;
+  withApiKey: typeof withApiKey;
 }>;
 
 /**
