@@ -31,6 +31,5 @@ export default defineSchema({
     processed: v.optional(v.number()),
     revoked: v.optional(v.number()),
     pages: v.optional(v.number()),
-    requestInfo: v.optional(v.record(v.string(), v.any())),
   }).index("by_namespace_and_creation_time", ["namespace"]),
 });

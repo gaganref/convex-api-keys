@@ -4,6 +4,7 @@ import type {
   FunctionReturnType,
   FunctionVisibility,
 } from "convex/server";
+import { v, type Infer } from "convex/values";
 import type { ComponentApi } from "../component/_generated/component.js";
 
 type CreateMutationResult = FunctionReturnType<ComponentApi["lib"]["create"]>;
@@ -209,31 +210,36 @@ export type InvalidateAllPageResult = FunctionReturnType<
   ComponentApi["lib"]["invalidateAll"]
 >;
 
-export type OnInvalidateHookPayload =
-  | {
-      trigger: "invalidate";
-      at: number;
-      keyId: string;
-      reason?: string;
-    }
-  | {
-      trigger: "refresh";
-      at: number;
-      keyId: string;
-      replacementKeyId: string;
-      reason?: string;
-    }
-  | {
-      trigger: "invalidateAll";
-      at: number;
-      namespace?: string;
-      before?: number;
-      after?: number;
-      reason?: string;
-      processed: number;
-      revoked: number;
-      pages: number;
-    };
+export const onInvalidateHookPayloadValidator = v.union(
+  v.object({
+    trigger: v.literal("invalidate"),
+    at: v.number(),
+    keyId: v.string(),
+    reason: v.optional(v.string()),
+  }),
+  v.object({
+    trigger: v.literal("refresh"),
+    at: v.number(),
+    keyId: v.string(),
+    replacementKeyId: v.string(),
+    reason: v.optional(v.string()),
+  }),
+  v.object({
+    trigger: v.literal("invalidateAll"),
+    at: v.number(),
+    namespace: v.optional(v.string()),
+    before: v.optional(v.number()),
+    after: v.optional(v.number()),
+    reason: v.optional(v.string()),
+    processed: v.number(),
+    revoked: v.number(),
+    pages: v.number(),
+  }),
+);
+
+export type OnInvalidateHookPayload = Infer<
+  typeof onInvalidateHookPayloadValidator
+>;
 
 export type UpdateArgs = {
   keyId: ApiKeyId;

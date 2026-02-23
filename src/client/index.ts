@@ -5,6 +5,8 @@ export type { ApiKeysClientErrorCode } from "./errors.js";
 
 export type { ApiKeysOptions } from "./options.js";
 
+export { onInvalidateHookPayloadValidator } from "./types.js";
+
 export type {
   ApiKeyId,
   ApiKeyEventMetadata,
