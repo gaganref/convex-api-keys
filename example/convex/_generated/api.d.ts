@@ -16,7 +16,6 @@ import type * as hooks from "../hooks.js";
 import type * as http from "../http.js";
 import type * as internal_ from "../internal.js";
 import type * as keys from "../keys.js";
-import type * as withApiKey from "../withApiKey.js";
 
 import type {
   ApiFromModules,
@@ -33,7 +32,6 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   internal: typeof internal_;
   keys: typeof keys;
-  withApiKey: typeof withApiKey;
 }>;
 
 /**
