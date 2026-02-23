@@ -1,7 +1,24 @@
+// ---------------------------------------------------------------------------
+// Dashboard queries
+//
+// NOTE: These queries scan recent rows in-memory to build chart data and
+// aggregate stats. This is fine for a demo/example app but is NOT recommended
+// for production dashboards with large datasets. In production, consider using
+// the Convex Aggregate component (https://www.convex.dev/components/aggregate)
+// or what convex team suggested in the docs.
+//
+// In production, you may also want to auth-gate these queries. See the note
+// in keys.ts for details.
+// ---------------------------------------------------------------------------
+
 import { query } from "./_generated/server.js";
 import { v } from "convex/values";
 import { apiKeys } from "./apiKeys.js";
 import { toNamespace, listNamespaceKeyStats } from "./keys.js";
+
+const MAX_SCAN_ROWS = 10_000;
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const RECENT_AUDIT_LIMIT = 8;
 
 // ---------------------------------------------------------------------------
 // Validators
@@ -50,17 +67,16 @@ export const dashboardData = query({
       .withIndex("by_namespace_and_creation_time", (q) =>
         q.eq("namespace", productionNamespace),
       )
-      .collect();
+      .take(MAX_SCAN_ROWS);
     const testingRows = await ctx.db
       .query("trackedEvents")
       .withIndex("by_namespace_and_creation_time", (q) =>
         q.eq("namespace", testingNamespace),
       )
-      .collect();
+      .take(MAX_SCAN_ROWS);
 
     const now = Date.now();
-    const dayMs = 24 * 60 * 60 * 1000;
-    const todaySince = now - dayMs;
+    const todaySince = now - ONE_DAY_MS;
     const productionEventsToday = productionRows.filter(
       (row) => row._creationTime >= todaySince,
     ).length;
@@ -77,7 +93,7 @@ export const dashboardData = query({
       testing: number;
     }> = [];
     for (let dayOffset = 6; dayOffset >= 0; dayOffset -= 1) {
-      const dayDate = new Date(now - dayOffset * dayMs);
+      const dayDate = new Date(now - dayOffset * ONE_DAY_MS);
       const dayStart = new Date(dayDate);
       dayStart.setHours(0, 0, 0, 0);
       const dayEnd = new Date(dayDate);
@@ -114,7 +130,7 @@ export const dashboardData = query({
       await apiKeys.listEvents(ctx, {
         namespace: productionNamespace,
         paginationOpts: {
-          numItems: 8,
+          numItems: RECENT_AUDIT_LIMIT,
           cursor: null,
         },
       });
@@ -122,13 +138,13 @@ export const dashboardData = query({
       await apiKeys.listEvents(ctx, {
         namespace: testingNamespace,
         paginationOpts: {
-          numItems: 8,
+          numItems: RECENT_AUDIT_LIMIT,
           cursor: null,
         },
       });
     const scopedAuditEvents = [...auditEvents.page, ...testingAuditEvents.page]
       .sort((a, b) => b.createdAt - a.createdAt)
-      .slice(0, 8);
+      .slice(0, RECENT_AUDIT_LIMIT);
 
     return {
       activeKeys: productionStats.active + testingStats.active,
@@ -148,6 +164,8 @@ export const dashboardData = query({
   },
 });
 
+// NOTE: Same caveat as above — .take() with a cap is acceptable for a demo
+// but not for production counters. Use Convex Aggregate or a counter table.
 export const invalidateHookSummary = query({
   args: {},
   returns: v.object({
@@ -166,10 +184,12 @@ export const invalidateHookSummary = query({
       .query("invalidationHookEvents")
       .order("desc")
       .take(1);
-    const all = await ctx.db.query("invalidationHookEvents").collect();
+    const counted = await ctx.db
+      .query("invalidationHookEvents")
+      .take(MAX_SCAN_ROWS);
 
     return {
-      total: all.length,
+      total: counted.length,
       lastTrigger: latest[0]?.trigger,
       lastAt: latest[0]?._creationTime,
     };

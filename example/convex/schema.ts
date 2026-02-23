@@ -10,7 +10,7 @@ export default defineSchema({
     keyId: v.string(),
     keyName: v.string(),
     event: v.string(),
-    props: v.optional(v.any()),
+    props: v.optional(v.record(v.string(), v.any())),
   })
     .index("by_user_and_namespace", ["userId", "namespace"])
     .index("by_namespace_and_creation_time", ["namespace"]),

@@ -1,3 +1,13 @@
+// ---------------------------------------------------------------------------
+// Key management mutations & queries
+//
+// NOTE: In a production app, you may want to gate these mutations and queries
+// behind a proper auth layer (e.g. Convex Auth, Clerk, Auth0). The "workspace"
+// arg is trusted as-is to keep this example simple and focused on showcasing
+// the API keys component. In production, prefer authenticating the caller and
+// verifying workspace ownership.
+// ---------------------------------------------------------------------------
+
 import { mutation, query } from "./_generated/server.js";
 import type { QueryCtx } from "./_generated/server.js";
 import { v } from "convex/values";
@@ -66,11 +76,22 @@ const listKeyEventsResultValidator = v.object({
 // Helpers
 // ---------------------------------------------------------------------------
 
+const MAX_STRING_LENGTH = 256;
+const KEYS_PAGE_SIZE = 100;
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
 export function toNamespace(
   workspace: string,
   environment: "production" | "testing",
 ) {
-  return `${workspace}:${environment}` as Namespace;
+  const trimmed = workspace.trim();
+  if (trimmed.length === 0) {
+    throw new Error("workspace must not be empty");
+  }
+  if (trimmed.length > MAX_STRING_LENGTH) {
+    throw new Error(`workspace exceeds max length of ${MAX_STRING_LENGTH}`);
+  }
+  return `${trimmed}:${environment}` as Namespace;
 }
 
 export async function listNamespaceKeyStats(
@@ -91,7 +112,7 @@ export async function listNamespaceKeyStats(
       await apiKeys.listKeys(ctx, {
         namespace,
         paginationOpts: {
-          numItems: 100,
+          numItems: KEYS_PAGE_SIZE,
           cursor,
         },
       });
@@ -131,7 +152,7 @@ async function keyExistsInNamespace(
       await apiKeys.listKeys(ctx, {
         namespace,
         paginationOpts: {
-          numItems: 100,
+          numItems: KEYS_PAGE_SIZE,
           cursor,
         },
       });
@@ -169,12 +190,19 @@ export const createKey = mutation({
     idleExpiresAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const name = args.name.trim();
+    if (name.length === 0) {
+      throw new Error("Key name must not be empty");
+    }
+    if (name.length > MAX_STRING_LENGTH) {
+      throw new Error(`Key name exceeds max length of ${MAX_STRING_LENGTH}`);
+    }
     const namespace = toNamespace(args.workspace, args.environment);
     const key = await apiKeys.create(ctx, {
       namespace,
-      name: args.name,
+      name,
       permissions: { beacon: args.permissions },
-      ttlMs: args.ttlDays === null ? null : args.ttlDays * 24 * 60 * 60 * 1000,
+      ttlMs: args.ttlDays === null ? null : args.ttlDays * ONE_DAY_MS,
       idleTimeoutMs: args.idleTimeoutMs,
       metadata: {
         source: "example.createKey",
@@ -207,15 +235,6 @@ export const revokeKey = mutation({
     }),
   ),
   handler: async (ctx, args) => {
-    const namespace = toNamespace(args.workspace, args.environment);
-    const owned = await keyExistsInNamespace(ctx, namespace, args.keyId);
-    if (!owned) {
-      return {
-        ok: false as const,
-        reason: "not_found" as const,
-      };
-    }
-
     const result = await apiKeys.invalidate(ctx, {
       keyId: args.keyId,
       reason: args.reason,
@@ -292,15 +311,6 @@ export const rotateKey = mutation({
     }),
   ),
   handler: async (ctx, args) => {
-    const namespace = toNamespace(args.workspace, args.environment);
-    const owned = await keyExistsInNamespace(ctx, namespace, args.keyId);
-    if (!owned) {
-      return {
-        ok: false as const,
-        reason: "not_found" as const,
-      };
-    }
-
     const result = await apiKeys.refresh(ctx, {
       keyId: args.keyId,
       reason: args.reason,
@@ -333,15 +343,16 @@ export const updateKey = mutation({
     v.object({ ok: v.literal(false), reason: v.literal("not_found") }),
   ),
   handler: async (ctx, args) => {
-    const namespace = toNamespace(args.workspace, args.environment);
-    const owned = await keyExistsInNamespace(ctx, namespace, args.keyId);
-    if (!owned) {
-      return { ok: false as const, reason: "not_found" as const };
+    const name = args.name.trim();
+    if (name.length === 0) {
+      throw new Error("Key name must not be empty");
     }
-
+    if (name.length > MAX_STRING_LENGTH) {
+      throw new Error(`Key name exceeds max length of ${MAX_STRING_LENGTH}`);
+    }
     const result = await apiKeys.update(ctx, {
       keyId: args.keyId,
-      name: args.name,
+      name,
     });
 
     if (!result.ok) {

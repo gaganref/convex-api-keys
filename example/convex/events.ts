@@ -1,6 +1,17 @@
+// ---------------------------------------------------------------------------
+// Tracked event queries & internal mutations
+//
+// NOTE: In production, you may want to auth-gate the public query
+// (trackedEventsByNamespace). See the note in keys.ts for details.
+// ---------------------------------------------------------------------------
+
 import { internalMutation, internalQuery, query } from "./_generated/server.js";
 import { v } from "convex/values";
 import { environmentValidator, toNamespace } from "./keys.js";
+
+const MAX_QUERY_ROWS = 100;
+const MAX_COUNT_ROWS = 10_000;
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 // ---------------------------------------------------------------------------
 // Validators
@@ -33,7 +44,7 @@ export const trackedEventsByNamespace = query({
   returns: v.array(trackedEventForUiValidator),
   handler: async (ctx, args) => {
     const namespace = toNamespace(args.workspace, args.environment);
-    const cap = Math.max(1, Math.min(args.limit ?? 100, 250));
+    const cap = Math.max(1, Math.min(args.limit ?? MAX_QUERY_ROWS, 250));
     const rows = await ctx.db
       .query("trackedEvents")
       .withIndex("by_namespace_and_creation_time", (q) =>
@@ -108,14 +119,7 @@ export const listTrackedEvents = internalQuery({
     total: v.number(),
   }),
   handler: async (ctx, args) => {
-    const totalRows = await ctx.db
-      .query("trackedEvents")
-      .withIndex("by_namespace_and_creation_time", (q) =>
-        q.eq("namespace", args.namespace),
-      )
-      .collect();
-
-    const cap = Math.max(1, Math.min(args.limit ?? 25, 100));
+    const cap = Math.max(1, Math.min(args.limit ?? 25, MAX_QUERY_ROWS));
     const rows = await ctx.db
       .query("trackedEvents")
       .withIndex("by_namespace_and_creation_time", (q) =>
@@ -123,6 +127,14 @@ export const listTrackedEvents = internalQuery({
       )
       .order("desc")
       .take(cap);
+
+    // Count total with a bounded scan — good enough for an example app.
+    const countRows = await ctx.db
+      .query("trackedEvents")
+      .withIndex("by_namespace_and_creation_time", (q) =>
+        q.eq("namespace", args.namespace),
+      )
+      .take(MAX_COUNT_ROWS);
 
     return {
       events: rows.map((row) => ({
@@ -134,7 +146,7 @@ export const listTrackedEvents = internalQuery({
         props: row.props,
         receivedAt: row._creationTime,
       })),
-      total: totalRows.length,
+      total: countRows.length,
     };
   },
 });
@@ -155,9 +167,9 @@ export const trackedEventStats = internalQuery({
       .withIndex("by_namespace_and_creation_time", (q) =>
         q.eq("namespace", args.namespace),
       )
-      .collect();
+      .take(MAX_COUNT_ROWS);
 
-    const since = Date.now() - 24 * 60 * 60 * 1000;
+    const since = Date.now() - ONE_DAY_MS;
     const byType: Record<string, number> = {};
     let today = 0;
     for (const row of rows) {
