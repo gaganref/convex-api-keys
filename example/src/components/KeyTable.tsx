@@ -39,7 +39,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import type { Environment } from "@/lib/namespace";
-import type { MockApiKey, KeyStatus, Permission } from "@/mock/data";
+import type { MockApiKey, KeyStatus, Permission } from "@/mock/types";
 import { api } from "../../convex/_generated/api";
 
 const PAGE_SIZE = 20;

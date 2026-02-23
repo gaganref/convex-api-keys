@@ -20,7 +20,7 @@ import {
 import { KeyTokenReveal } from "@/components/KeyTokenReveal";
 import { useAuth } from "@/context/AuthContext";
 import type { Environment } from "@/lib/namespace";
-import type { MockApiKey } from "@/mock/data";
+import type { MockApiKey } from "@/mock/types";
 import { api } from "../../convex/_generated/api";
 
 type RotateKeyDialogProps = {

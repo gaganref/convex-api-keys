@@ -13,7 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
-import type { MockApiKey, AuditEventType, KeyStatus } from "@/mock/data";
+import type { MockApiKey, AuditEventType, KeyStatus } from "@/mock/types";
 import { PermissionBadge } from "@/components/PermissionBadge";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "../../convex/_generated/api";
