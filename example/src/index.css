@@ -31,7 +31,7 @@
   --chart-3: oklch(0.546 0.245 262.881);
   --chart-4: oklch(0.488 0.243 264.376);
   --chart-5: oklch(0.424 0.199 265.638);
-  --radius: 0.625rem;
+  --radius: 0;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.546 0.245 262.881);
@@ -170,4 +170,41 @@
     opacity: 1;
     transform: scale(1);
   }
+}
+
+/* KeyTokenReveal terminal card */
+.token-card {
+  background: oklch(0.1 0.015 260);
+  border-color: oklch(from var(--color-beacon-amber) l c h / 0.25);
+  box-shadow:
+    0 0 0 1px oklch(from var(--color-beacon-amber) l c h / 0.08),
+    inset 0 1px 0 oklch(1 0 0 / 3%);
+}
+.token-card-label {
+  color: oklch(0.55 0.05 260);
+}
+.token-card-badge {
+  color: var(--color-beacon-amber);
+  border: 1px solid oklch(from var(--color-beacon-amber) l c h / 0.3);
+  background: oklch(from var(--color-beacon-amber) l c h / 0.1);
+}
+.token-card-value {
+  color: var(--color-beacon-amber);
+  background: oklch(from var(--color-beacon-amber) l c h / 0.07);
+  border: 1px solid oklch(from var(--color-beacon-amber) l c h / 0.2);
+  text-shadow: 0 0 18px oklch(from var(--color-beacon-amber) l c h / 0.5);
+}
+.token-card-copy {
+  border-color: oklch(from var(--color-beacon-amber) l c h / 0.3);
+  color: var(--color-beacon-amber);
+  background: oklch(from var(--color-beacon-amber) l c h / 0.05);
+}
+.token-card-copy-success {
+  border-color: oklch(0.6 0.15 142 / 50%);
+  color: oklch(0.6 0.15 142);
+  background: oklch(0.6 0.15 142 / 0.08);
+}
+.token-card-cursor {
+  background: var(--color-beacon-amber);
+  animation: blink 1s step-end infinite;
 }

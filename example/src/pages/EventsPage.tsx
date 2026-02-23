@@ -34,7 +34,7 @@ type TrackedEvent = {
 
 function EventsLoadingState() {
   return (
-    <div className="rounded-md border overflow-hidden">
+    <div className="border overflow-hidden">
       <div className="flex items-center gap-6 px-4 py-3 border-b bg-muted/20">
         <Skeleton className="h-8 w-24" />
         <Skeleton className="h-8 w-24" />
@@ -54,15 +54,17 @@ function EventsLoadingState() {
   );
 }
 
+const ONE_DAY_MS = 86_400_000;
+
 function StatsBar({ events }: { events: Array<TrackedEvent> }) {
-  const cutoff = useMemo(() => Date.now() - 86400000, []);
+  const cutoff = useMemo(() => Date.now() - ONE_DAY_MS, []);
   const today = events.filter((e) => e.receivedAt > cutoff);
   const uniqueTypes = new Set(events.map((e) => e.event)).size;
 
   return (
-    <div className="flex items-center gap-6 px-4 py-3 border-b bg-muted/20">
+    <div className="flex flex-wrap items-center gap-4 sm:gap-6 px-3 sm:px-4 py-3 border-b bg-muted/20">
       <div className="flex items-center gap-2">
-        <div className="flex size-6 items-center justify-center rounded-md bg-primary/10 text-primary shrink-0">
+        <div className="flex size-6 items-center justify-center bg-primary/10 text-primary shrink-0">
           <ChartBar size={12} />
         </div>
         <div className="flex flex-col gap-0">
@@ -74,9 +76,9 @@ function StatsBar({ events }: { events: Array<TrackedEvent> }) {
           </span>
         </div>
       </div>
-      <div className="w-px h-8 bg-border" />
+      <div className="w-px h-8 bg-border hidden sm:block" />
       <div className="flex items-center gap-2">
-        <div className="flex size-6 items-center justify-center rounded-md bg-primary/10 text-primary shrink-0">
+        <div className="flex size-6 items-center justify-center bg-primary/10 text-primary shrink-0">
           <Lightning size={12} />
         </div>
         <div className="flex flex-col gap-0">
@@ -88,9 +90,9 @@ function StatsBar({ events }: { events: Array<TrackedEvent> }) {
           </span>
         </div>
       </div>
-      <div className="w-px h-8 bg-border" />
+      <div className="w-px h-8 bg-border hidden sm:block" />
       <div className="flex items-center gap-2">
-        <div className="flex size-6 items-center justify-center rounded-md bg-primary/10 text-primary shrink-0">
+        <div className="flex size-6 items-center justify-center bg-primary/10 text-primary shrink-0">
           <Tag size={12} />
         </div>
         <div className="flex flex-col gap-0">
@@ -108,6 +110,18 @@ function StatsBar({ events }: { events: Array<TrackedEvent> }) {
 
 function EventsTable({ events }: { events: Array<TrackedEvent> }) {
   const ordered = [...events].sort((a, b) => b.receivedAt - a.receivedAt);
+
+  if (ordered.length === 0) {
+    return (
+      <div className="py-12 text-center">
+        <Lightning size={24} className="mx-auto text-muted-foreground/50 mb-2" />
+        <p className="text-sm text-muted-foreground">No events yet.</p>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Send a tracking event via the /track endpoint to see it here.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <Table>
@@ -134,7 +148,10 @@ function EventsTable({ events }: { events: Array<TrackedEvent> }) {
               </TableCell>
               <TableCell>
                 <Popover>
-                  <PopoverTrigger className="font-mono text-[11px] text-muted-foreground hover:text-foreground max-w-[200px] truncate text-left inline-block cursor-pointer transition-colors">
+                  <PopoverTrigger
+                    aria-label="View event properties"
+                    className="font-mono text-[11px] text-muted-foreground hover:text-foreground max-w-[200px] truncate text-left inline-block cursor-pointer transition-colors"
+                  >
                     {truncated}
                   </PopoverTrigger>
                   <PopoverContent className="w-80 p-3" align="start">
@@ -166,6 +183,8 @@ function EventsTable({ events }: { events: Array<TrackedEvent> }) {
   );
 }
 
+const EVENT_QUERY_LIMIT = 100;
+
 export function EventsPage() {
   const { username } = useAuth();
   const workspace = username ?? "anonymous";
@@ -173,12 +192,12 @@ export function EventsPage() {
   const production = useQuery(api.events.trackedEventsByNamespace, {
     workspace,
     environment: environments[0],
-    limit: 100,
+    limit: EVENT_QUERY_LIMIT,
   });
   const testing = useQuery(api.events.trackedEventsByNamespace, {
     workspace,
     environment: environments[1],
-    limit: 100,
+    limit: EVENT_QUERY_LIMIT,
   });
   const eventsByNamespace: Record<
     Environment,
@@ -215,7 +234,7 @@ export function EventsPage() {
             {eventsByNamespace[ns] === undefined ? (
               <EventsLoadingState />
             ) : (
-              <div className="rounded-md border overflow-hidden">
+              <div className="border overflow-hidden">
                 <StatsBar events={eventsByNamespace[ns]} />
                 <EventsTable events={eventsByNamespace[ns]} />
               </div>

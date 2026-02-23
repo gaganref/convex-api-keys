@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Copy, Check, Warning } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+const CLIPBOARD_FEEDBACK_MS = 2500;
 
 type KeyTokenRevealProps = {
   token: string;
@@ -14,13 +17,12 @@ export function KeyTokenReveal({ token, keyName, onDone }: KeyTokenRevealProps) 
   async function handleCopy() {
     await navigator.clipboard.writeText(token);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+    setTimeout(() => setCopied(false), CLIPBOARD_FEEDBACK_MS);
   }
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Warning banner */}
-      <div className="flex items-start gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-3 py-2.5">
+      <div className="flex items-start gap-2 border border-yellow-500/30 bg-yellow-500/10 px-3 py-2.5">
         <Warning
           size={14}
           weight="fill"
@@ -32,72 +34,28 @@ export function KeyTokenReveal({ token, keyName, onDone }: KeyTokenRevealProps) 
         </p>
       </div>
 
-      {/* Terminal-style token display */}
-      <div
-        className="rounded-md border flex flex-col gap-3 p-4"
-        style={{
-          background: "oklch(0.1 0.015 260)",
-          borderColor: "oklch(from var(--color-beacon-amber) l c h / 0.25)",
-          boxShadow:
-            "0 0 0 1px oklch(from var(--color-beacon-amber) l c h / 0.08), inset 0 1px 0 oklch(1 0 0 / 3%)",
-        }}
-      >
+      <div className="token-card border flex flex-col gap-3 p-4">
         <div className="flex items-center justify-between">
-          <span
-            className="text-xs font-mono"
-            style={{ color: "oklch(0.55 0.05 260)" }}
-          >
+          <span className="token-card-label text-xs font-mono">
             {keyName}
           </span>
-          <span
-            className="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold tracking-wider"
-            style={{
-              color: "var(--color-beacon-amber)",
-              border: "1px solid oklch(from var(--color-beacon-amber) l c h / 0.3)",
-              background: "oklch(from var(--color-beacon-amber) l c h / 0.1)",
-            }}
-          >
+          <span className="token-card-badge text-[10px] px-1.5 py-0.5 rounded font-mono font-bold tracking-wider">
             NEW KEY
           </span>
         </div>
 
-        {/* Token text with blinking cursor */}
-        <div
-          className="font-mono text-sm break-all rounded px-3 py-3 select-all cursor-text"
-          style={{
-            color: "var(--color-beacon-amber)",
-            background: "oklch(from var(--color-beacon-amber) l c h / 0.07)",
-            border: "1px solid oklch(from var(--color-beacon-amber) l c h / 0.2)",
-            textShadow: "0 0 18px oklch(from var(--color-beacon-amber) l c h / 0.5)",
-          }}
-        >
+        <div className="token-card-value font-mono text-sm break-all rounded px-3 py-3 select-all cursor-text">
           {token}
-          <span
-            className="inline-block ml-0.5 w-[2px] h-[13px] align-middle rounded-sm"
-            style={{
-              background: "var(--color-beacon-amber)",
-              animation: "blink 1s step-end infinite",
-            }}
-          />
+          <span className="token-card-cursor inline-block ml-0.5 w-[2px] h-[13px] align-middle" />
         </div>
 
         <Button
           variant="outline"
           size="sm"
-          className="w-full gap-2 transition-all duration-200"
-          style={
-            copied
-              ? {
-                  borderColor: "oklch(0.6 0.15 142 / 50%)",
-                  color: "oklch(0.6 0.15 142)",
-                  background: "oklch(0.6 0.15 142 / 0.08)",
-                }
-              : {
-                  borderColor: "oklch(from var(--color-beacon-amber) l c h / 0.3)",
-                  color: "var(--color-beacon-amber)",
-                  background: "oklch(from var(--color-beacon-amber) l c h / 0.05)",
-                }
-          }
+          className={cn(
+            "w-full gap-2 transition-all duration-200",
+            copied ? "token-card-copy-success" : "token-card-copy",
+          )}
           onClick={handleCopy}
         >
           {copied ? (

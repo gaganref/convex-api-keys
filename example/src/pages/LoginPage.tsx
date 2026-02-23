@@ -40,7 +40,7 @@ export function LoginPage() {
           style={{ animation: "fadeUp 0.5s ease both" }}
         >
           <div
-            className="flex size-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground text-3xl select-none"
+            className="flex size-16 items-center justify-center bg-primary text-primary-foreground text-3xl select-none"
             style={{
               boxShadow:
                 "0 0 0 1px oklch(0.5 0.2 260 / 20%), 0 0 40px oklch(0.5 0.2 260 / 30%), 0 8px 24px oklch(0.5 0.2 260 / 18%)",
@@ -64,7 +64,7 @@ export function LoginPage() {
 
         {/* Login card */}
         <div
-          className="w-full rounded-lg border bg-card p-6 flex flex-col gap-4"
+          className="w-full border bg-card p-6 flex flex-col gap-4"
           style={{
             animation: "fadeUp 0.5s ease 0.18s both",
             boxShadow:

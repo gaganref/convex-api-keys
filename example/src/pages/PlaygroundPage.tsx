@@ -312,9 +312,9 @@ export function PlaygroundPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-5">
         {/* Request panel */}
-        <div className="lg:col-span-2 flex flex-col gap-3 rounded-md border p-4">
+        <div className="md:col-span-2 flex flex-col gap-3 border p-4">
           <p className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
             Request
           </p>
@@ -407,7 +407,7 @@ export function PlaygroundPage() {
         </div>
 
         {/* Response panel */}
-        <div className="lg:col-span-3 flex flex-col gap-3 rounded-md border p-4 min-h-[300px]">
+        <div className="md:col-span-3 flex flex-col gap-3 border p-4 min-h-[300px]">
           <p className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
             Response
           </p>
@@ -440,7 +440,7 @@ export function PlaygroundPage() {
               </div>
 
               {/* Response body */}
-              <div className="rounded-md bg-muted/40 border p-3 overflow-auto max-h-80">
+              <div className="bg-muted/40 border p-3 overflow-auto max-h-80">
                 <pre className="text-[12px] font-mono whitespace-pre-wrap break-all">
                   {JSON.stringify(response.body, null, 2)}
                 </pre>
@@ -453,15 +453,15 @@ export function PlaygroundPage() {
                   {curlOpen ? <CaretUp size={10} /> : <CaretDown size={10} />}
                 </CollapsibleTrigger>
                 <CollapsibleContent>
-                  <div className="relative rounded-md bg-muted/40 border p-3 mt-1 group">
+                  <div className="relative bg-muted/40 border p-3 mt-1 group">
                     <button
                       type="button"
                       onClick={() => {
                         navigator.clipboard.writeText(curlCommand);
                         setCurlCopied(true);
-                        setTimeout(() => setCurlCopied(false), 1500);
+                        setTimeout(() => setCurlCopied(false), 2500);
                       }}
-                      className="absolute top-2 right-2 p-1 rounded-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors opacity-0 group-hover:opacity-100"
+                      className="absolute top-2 right-2 p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors opacity-0 group-hover:opacity-100"
                       aria-label="Copy cURL command"
                     >
                       {curlCopied ? <Check size={13} /> : <Copy size={13} />}

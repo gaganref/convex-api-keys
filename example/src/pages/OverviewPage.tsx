@@ -208,13 +208,13 @@ export function OverviewPage() {
             </ResponsiveContainer>
             <div className="flex items-center gap-5 mt-3">
               <div className="flex items-center gap-1.5">
-                <div className="size-2 rounded-sm bg-primary" />
+                <div className="size-2 bg-primary" />
                 <span className="text-[11px] text-muted-foreground">
                   Production
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="size-2 rounded-sm bg-muted-foreground/50" />
+                <div className="size-2 bg-muted-foreground/50" />
                 <span className="text-[11px] text-muted-foreground">
                   Testing
                 </span>

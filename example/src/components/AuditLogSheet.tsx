@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import type { MockApiKey, AuditEventType, KeyStatus } from "@/mock/data";
 import { PermissionBadge } from "@/components/PermissionBadge";
@@ -70,6 +71,8 @@ const STATUS_BADGE: Record<KeyStatus, { label: string; className: string }> = {
   },
 };
 
+const PAGE_SIZE = 20;
+
 type AuditLogSheetProps = {
   apiKey: MockApiKey | null;
   open: boolean;
@@ -92,7 +95,7 @@ export function AuditLogSheet({
           keyId: apiKey.id,
         }
       : "skip",
-    { initialNumItems: 20 },
+    { initialNumItems: PAGE_SIZE },
   );
   const events: Array<{
     id: string;
@@ -120,12 +123,12 @@ export function AuditLogSheet({
         <div className="px-4 pb-4">
           {/* Key metadata */}
           {apiKey && statusConfig && (
-            <div className="mt-4 rounded-md border bg-muted/20 p-3">
+            <div className="mt-4 border bg-muted/20 p-3">
               <div className="flex flex-wrap items-center gap-1.5">
                 <Badge
                   variant="outline"
                   className={cn(
-                    "h-5 rounded-sm text-[10px] px-1.5 py-0",
+                    "h-5 text-[10px] px-1.5 py-0",
                     statusConfig.className,
                   )}
                 >
@@ -133,16 +136,12 @@ export function AuditLogSheet({
                 </Badge>
                 <Badge
                   variant="outline"
-                  className="h-5 rounded-sm text-[10px] px-1.5 py-0 font-mono"
+                  className="h-5 text-[10px] px-1.5 py-0 font-mono"
                 >
                   {apiKey.namespace}
                 </Badge>
                 {apiKey.permissions.map((p) => (
-                  <PermissionBadge
-                    key={p}
-                    permission={p}
-                    className="rounded-sm"
-                  />
+                  <PermissionBadge key={p} permission={p} />
                 ))}
               </div>
               <div className="mt-2 border-t pt-2">
@@ -159,11 +158,15 @@ export function AuditLogSheet({
           <ScrollArea className="mt-4 max-h-[60vh]">
             <div className="flex flex-col gap-0 pr-4">
               {events.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-6 text-center">
-                  {status === "LoadingFirstPage"
-                    ? "Loading events..."
-                    : "No events recorded."}
-                </p>
+                <div className="py-6 text-center">
+                  {status === "LoadingFirstPage" ? (
+                    <Spinner className="size-4 mx-auto text-muted-foreground" />
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No events recorded.
+                    </p>
+                  )}
+                </div>
               ) : (
                 events.map((event, i) => {
                   const config = EVENT_CONFIG[event.type];
@@ -193,7 +196,7 @@ export function AuditLogSheet({
                           <Badge
                             variant="outline"
                             className={cn(
-                              "h-5 rounded-sm text-[10px] px-1.5 py-0",
+                              "h-5 text-[10px] px-1.5 py-0",
                               config.badgeClass,
                             )}
                           >
@@ -220,7 +223,7 @@ export function AuditLogSheet({
                     size="sm"
                     variant="outline"
                     className="text-xs"
-                    onClick={() => loadMore(20)}
+                    onClick={() => loadMore(PAGE_SIZE)}
                   >
                     Load more
                   </Button>

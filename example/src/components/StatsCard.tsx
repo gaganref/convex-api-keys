@@ -28,7 +28,7 @@ export function StatsCard({
           {title}
         </CardTitle>
         {icon && (
-          <div className="flex size-7 items-center justify-center rounded-md bg-primary/10 text-primary">
+          <div className="flex size-7 items-center justify-center bg-primary/10 text-primary">
             {icon}
           </div>
         )}

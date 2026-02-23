@@ -216,7 +216,7 @@ export function CreateKeyDialog({
             {/* Permissions */}
             <div className="flex flex-col gap-2">
               <Label className="text-xs">Permissions</Label>
-              <div className="flex flex-col gap-2 rounded-md border p-3">
+              <div className="flex flex-col gap-2 border p-3">
                 {PERMISSIONS.map((perm) => (
                   <div key={perm.id} className="flex items-start gap-2.5">
                     <Checkbox

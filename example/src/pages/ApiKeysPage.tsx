@@ -113,12 +113,12 @@ export function ApiKeysPage() {
           <p className="text-[11px] text-muted-foreground mb-2.5 flex items-center gap-1.5">
             <span className="size-1.5 rounded-full bg-green-500 shrink-0 inline-block" />
             Production keys in this workspace use the{" "}
-            <code className="font-mono bg-muted px-1 rounded text-[10px]">
+            <code className="font-mono bg-muted px-1 text-[10px]">
               sk_
             </code>{" "}
             prefix and authenticate real API traffic.
           </p>
-          <div className="rounded-md border">
+          <div className="border">
             <KeyTable namespace={environments[0]} />
           </div>
         </TabsContent>
@@ -127,12 +127,12 @@ export function ApiKeysPage() {
           <p className="text-[11px] text-muted-foreground mb-2.5 flex items-center gap-1.5">
             <span className="size-1.5 rounded-full bg-blue-400 shrink-0 inline-block" />
             Testing keys in this workspace also use{" "}
-            <code className="font-mono bg-muted px-1 rounded text-[10px]">
+            <code className="font-mono bg-muted px-1 text-[10px]">
               sk_
             </code>{" "}
             prefix and are safe to use in development and CI.
           </p>
-          <div className="rounded-md border">
+          <div className="border">
             <KeyTable namespace={environments[1]} />
           </div>
         </TabsContent>

@@ -59,8 +59,8 @@ export function AppLayout({ page, onNavigate, children }: AppLayoutProps) {
         <SidebarHeader className="px-4 py-3.5">
           <div className="flex items-center gap-2.5">
             <div
-              className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground text-sm font-bold select-none shrink-0"
-              style={{ boxShadow: "0 2px 8px oklch(0.5 0.2 260 / 25%)" }}
+              className="flex size-8 items-center justify-center bg-primary text-primary-foreground text-sm font-bold select-none shrink-0 shadow-md shadow-primary/25"
+              aria-hidden="true"
             >
               ⬡
             </div>
@@ -86,6 +86,7 @@ export function AppLayout({ page, onNavigate, children }: AppLayoutProps) {
                     <SidebarMenuItem key={item.id}>
                       <SidebarMenuButton
                         isActive={isActive}
+                        aria-current={isActive ? "page" : undefined}
                         onClick={() => onNavigate(item.id)}
                         className="cursor-pointer"
                       >
@@ -141,7 +142,9 @@ export function AppLayout({ page, onNavigate, children }: AppLayoutProps) {
           )}
           <span className="text-sm font-medium">{currentNav?.label}</span>
         </header>
-        <main className="flex-1 overflow-auto p-6">{children}</main>
+        <main className="flex-1 overflow-auto p-4 md:p-6">
+          <div className="mx-auto w-full lg:w-[90%] xl:w-[85%]">{children}</div>
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );
