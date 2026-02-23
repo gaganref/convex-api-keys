@@ -796,8 +796,9 @@ export class ApiKeys<
    * @param ctx Any context that can run a mutation.
    * @param args Optional retention period override. Defaults to 30 days.
    *   See {@link CleanupExpiredArgs}.
-   * @returns `{ deleted, isDone }` — number of keys removed and whether
-   *   all categories were fully processed.
+   * @returns `{ deleted, expired, idle, revoked, isDone }` — total and
+   *   per-category counts of keys removed, plus whether all categories
+   *   were fully processed in this run.
    */
   async cleanupExpired(
     ctx: RunMutationCtx,

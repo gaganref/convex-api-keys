@@ -28,7 +28,13 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         "mutation",
         "internal",
         { retentionMs: number },
-        { deleted: number; isDone: boolean },
+        {
+          deleted: number;
+          expired: number;
+          idle: number;
+          isDone: boolean;
+          revoked: number;
+        },
         Name
       >;
     };

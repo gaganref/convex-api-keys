@@ -24,27 +24,42 @@ const CLEANUP_BATCH_SIZE = 100;
  * });
  * ```
  */
+/** Minimum allowed retention period: 1 hour. */
+const MIN_RETENTION_MS = 3_600_000;
+
 export const cleanupExpired = mutation({
   args: { retentionMs: v.number() },
-  returns: v.object({ deleted: v.number(), isDone: v.boolean() }),
+  returns: v.object({
+    deleted: v.number(),
+    expired: v.number(),
+    idle: v.number(),
+    revoked: v.number(),
+    isDone: v.boolean(),
+  }),
   handler: async (ctx, { retentionMs }) => {
+    if (!Number.isFinite(retentionMs) || retentionMs < MIN_RETENTION_MS) {
+      throw new Error(
+        `retentionMs must be a finite number >= ${MIN_RETENTION_MS} (1 hour), got ${retentionMs}`,
+      );
+    }
+
     const cutoff = Date.now() - retentionMs;
-    let deleted = 0;
+    const counts = { expired: 0, idle: 0, revoked: 0 };
 
     // 1. Time-expired keys
-    const expired = await ctx.db
+    const expiredKeys = await ctx.db
       .query("apiKeys")
       .withIndex("by_expires_at", (q) => q.lt("expiresAt", cutoff))
       .take(CLEANUP_BATCH_SIZE);
-    for (const key of expired) {
+    for (const key of expiredKeys) {
       await deleteKeyAndEvents(ctx, key._id);
-      deleted++;
+      counts.expired++;
     }
-    if (expired.length === CLEANUP_BATCH_SIZE) {
+    if (expiredKeys.length === CLEANUP_BATCH_SIZE) {
       await ctx.scheduler.runAfter(0, api.cleanup.cleanupExpired, {
         retentionMs,
       });
-      return { deleted, isDone: false };
+      return { deleted: counts.expired, ...counts, isDone: false };
     }
 
     // 2. Idle-expired keys
@@ -54,32 +69,35 @@ export const cleanupExpired = mutation({
       .take(CLEANUP_BATCH_SIZE);
     for (const key of idleExpired) {
       await deleteKeyAndEvents(ctx, key._id);
-      deleted++;
+      counts.idle++;
     }
     if (idleExpired.length === CLEANUP_BATCH_SIZE) {
       await ctx.scheduler.runAfter(0, api.cleanup.cleanupExpired, {
         retentionMs,
       });
-      return { deleted, isDone: false };
+      const deleted = counts.expired + counts.idle;
+      return { deleted, ...counts, isDone: false };
     }
 
     // 3. Revoked keys past retention
-    const revoked = await ctx.db
+    const revokedKeys = await ctx.db
       .query("apiKeys")
       .withIndex("by_revoked_at", (q) => q.lt("revokedAt", cutoff))
       .take(CLEANUP_BATCH_SIZE);
-    for (const key of revoked) {
+    for (const key of revokedKeys) {
       await deleteKeyAndEvents(ctx, key._id);
-      deleted++;
+      counts.revoked++;
     }
-    if (revoked.length === CLEANUP_BATCH_SIZE) {
+    if (revokedKeys.length === CLEANUP_BATCH_SIZE) {
       await ctx.scheduler.runAfter(0, api.cleanup.cleanupExpired, {
         retentionMs,
       });
-      return { deleted, isDone: false };
+      const deleted = counts.expired + counts.idle + counts.revoked;
+      return { deleted, ...counts, isDone: false };
     }
 
-    return { deleted, isDone: true };
+    const deleted = counts.expired + counts.idle + counts.revoked;
+    return { deleted, ...counts, isDone: true };
   },
 });
 
