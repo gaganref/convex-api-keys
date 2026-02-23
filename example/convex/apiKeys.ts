@@ -11,7 +11,7 @@ export const apiKeys = new ApiKeys<{
     beacon: ["reports:read"],
   },
   keyDefaults: {
-    prefix: "sk_",
+    prefix: "sk_", // fallback; createKey/rotateKey override per environment
     ttlMs: 90 * 24 * 60 * 60 * 1000, // 90 days
     idleTimeoutMs: 30 * 24 * 60 * 60 * 1000, // 30 days
   },

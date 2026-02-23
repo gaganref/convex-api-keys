@@ -80,6 +80,11 @@ const MAX_STRING_LENGTH = 256;
 const KEYS_PAGE_SIZE = 100;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
+const ENV_PREFIX: Record<"production" | "testing", string> = {
+  production: "sk_live_",
+  testing: "sk_test_",
+};
+
 export function toNamespace(
   workspace: string,
   environment: "production" | "testing",
@@ -201,6 +206,7 @@ export const createKey = mutation({
     const key = await apiKeys.create(ctx, {
       namespace,
       name,
+      prefix: ENV_PREFIX[args.environment],
       permissions: { beacon: args.permissions },
       ttlMs: args.ttlDays === null ? null : args.ttlDays * ONE_DAY_MS,
       idleTimeoutMs: args.idleTimeoutMs,
@@ -313,6 +319,7 @@ export const rotateKey = mutation({
   handler: async (ctx, args) => {
     const result = await apiKeys.refresh(ctx, {
       keyId: args.keyId,
+      prefix: ENV_PREFIX[args.environment],
       reason: args.reason,
       metadata: {
         source: "example.rotateKey",

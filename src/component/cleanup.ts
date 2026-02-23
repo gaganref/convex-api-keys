@@ -24,9 +24,6 @@ const CLEANUP_BATCH_SIZE = 100;
  * });
  * ```
  */
-/** Minimum allowed retention period: 1 hour. */
-const MIN_RETENTION_MS = 3_600_000;
-
 export const cleanupExpired = mutation({
   args: { retentionMs: v.number() },
   returns: v.object({
@@ -37,9 +34,9 @@ export const cleanupExpired = mutation({
     isDone: v.boolean(),
   }),
   handler: async (ctx, { retentionMs }) => {
-    if (!Number.isFinite(retentionMs) || retentionMs < MIN_RETENTION_MS) {
+    if (!Number.isFinite(retentionMs) || retentionMs <= 0) {
       throw new Error(
-        `retentionMs must be a finite number >= ${MIN_RETENTION_MS} (1 hour), got ${retentionMs}`,
+        `retentionMs must be a positive finite number, got ${retentionMs}`,
       );
     }
 

@@ -101,7 +101,7 @@ export function KeyTable({ namespace }: KeyTableProps) {
   const keys: Array<MockApiKey> = results.map((row) => ({
     id: row.keyId,
     name: row.name ?? "Unnamed key",
-    prefix: row.tokenPreview.split("...")[0] ?? "sk_",
+    prefix: row.tokenPreview.split("...")[0] ?? "sk_live_",
     start: row.tokenPreview,
     namespace,
     permissions: (row.permissions as Array<Permission>).filter(

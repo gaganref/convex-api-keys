@@ -677,7 +677,7 @@ export class ApiKeys<
     const now = Date.now();
 
     try {
-      const tokenPrefix = this.options.keyDefaults.prefix;
+      const tokenPrefix = args.prefix ?? this.options.keyDefaults.prefix;
       const token = generateToken(
         tokenPrefix,
         this.options.keyDefaults.keyLengthBytes,

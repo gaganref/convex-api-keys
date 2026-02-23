@@ -18,7 +18,7 @@ describe("keys", () => {
     });
 
     expect(created.keyId).toBeTypeOf("string");
-    expect(created.token).toMatch(/^sk_/);
+    expect(created.token).toMatch(/^sk_live_/);
 
     const listed = await t.query(api.keys.listKeys, {
       workspace: "acme",
@@ -107,7 +107,7 @@ describe("keys", () => {
 
     expect(rotated.keyId).not.toBe(created.keyId);
     expect(rotated.replacedKeyId).toBe(created.keyId);
-    expect(rotated.token).toMatch(/^sk_/);
+    expect(rotated.token).toMatch(/^sk_live_/);
 
     const keys = await t.query(api.keys.listKeys, {
       workspace: "acme",

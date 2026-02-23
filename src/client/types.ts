@@ -254,7 +254,7 @@ export type UpdateResult = FunctionReturnType<ComponentApi["lib"]["update"]>;
 export type CleanupExpiredArgs = {
   /**
    * How long to retain dead keys (expired or revoked) before hard-deleting
-   * them and their audit events. Must be at least 1 hour (3 600 000 ms).
+   * them and their audit events. Must be a positive finite number.
    *
    * @default 30 days
    */
@@ -265,6 +265,8 @@ export type CleanupExpiredResult = CleanupExpiredMutationResult;
 
 export type RefreshArgs = {
   keyId: ApiKeyId;
+  /** Override the token prefix for the new key. Falls back to `keyDefaults.prefix`. */
+  prefix?: string;
   reason?: string;
   metadata?: ApiKeyEventMetadata;
 };
