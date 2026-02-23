@@ -6,7 +6,7 @@ const crons = cronJobs();
 crons.interval(
   "cleanup expired api keys",
   { hours: 24 },
-  internal.internal.cleanupExpiredKeys,
+  internal.cleanup.cleanupExpiredKeys,
 );
 
 export default crons;

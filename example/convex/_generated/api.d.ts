@@ -9,12 +9,12 @@
  */
 
 import type * as apiKeys from "../apiKeys.js";
+import type * as cleanup from "../cleanup.js";
 import type * as crons from "../crons.js";
 import type * as dashboard from "../dashboard.js";
 import type * as events from "../events.js";
 import type * as hooks from "../hooks.js";
 import type * as http from "../http.js";
-import type * as internal_ from "../internal.js";
 import type * as keys from "../keys.js";
 
 import type {
@@ -25,12 +25,12 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   apiKeys: typeof apiKeys;
+  cleanup: typeof cleanup;
   crons: typeof crons;
   dashboard: typeof dashboard;
   events: typeof events;
   hooks: typeof hooks;
   http: typeof http;
-  internal: typeof internal_;
   keys: typeof keys;
 }>;
 
