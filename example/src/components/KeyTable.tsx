@@ -111,7 +111,7 @@ export function KeyTable({ namespace }: KeyTableProps) {
         permission === "admin",
     ),
     createdAt: new Date(row.createdAt),
-    lastUsedAt: row.lastUsedAt === undefined ? null : new Date(row.lastUsedAt),
+    lastUsedAt: new Date(row.lastUsedAt),
     expiresAt: row.expiresAt === undefined ? null : new Date(row.expiresAt),
     status: row.status,
   }));
@@ -182,9 +182,7 @@ export function KeyTable({ namespace }: KeyTableProps) {
                   {formatDistanceToNow(key.createdAt, { addSuffix: true })}
                 </TableCell>
                 <TableCell className="text-muted-foreground hidden lg:table-cell">
-                  {key.lastUsedAt
-                    ? formatDistanceToNow(key.lastUsedAt, { addSuffix: true })
-                    : "Never"}
+                  {formatDistanceToNow(key.lastUsedAt, { addSuffix: true })}
                 </TableCell>
                 <TableCell className="text-muted-foreground hidden md:table-cell">
                   {key.expiresAt ? (

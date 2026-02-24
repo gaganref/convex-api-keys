@@ -49,7 +49,11 @@ export function RenameKeyDialog({
         name: value.trim(),
       });
       if (!result.ok) {
-        setError("Key not found.");
+        setError(
+          result.reason === "already_revoked"
+            ? "Cannot rename a revoked key."
+            : "Key not found.",
+        );
         return;
       }
       onOpenChange(false);

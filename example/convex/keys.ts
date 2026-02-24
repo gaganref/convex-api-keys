@@ -38,7 +38,7 @@ const listedKeyValidator = v.object({
   tokenPreview: v.string(),
   permissions: v.array(v.string()),
   createdAt: v.number(),
-  lastUsedAt: v.optional(v.number()),
+  lastUsedAt: v.number(),
   expiresAt: v.optional(v.number()),
   status: v.union(
     v.literal("active"),
@@ -345,7 +345,10 @@ export const updateKey = mutation({
   },
   returns: v.union(
     v.object({ ok: v.literal(true) }),
-    v.object({ ok: v.literal(false), reason: v.literal("not_found") }),
+    v.object({
+      ok: v.literal(false),
+      reason: v.union(v.literal("not_found"), v.literal("already_revoked")),
+    }),
   ),
   handler: async (ctx, args) => {
     const name = args.name.trim();
