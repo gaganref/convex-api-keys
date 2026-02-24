@@ -16,16 +16,14 @@ import schema from "./schema.js";
 // Helpers
 // ---------------------------------------------------------------------------
 
-type IdleFields = { maxIdleMs?: number; lastUsedAt?: number };
+type IdleFields = { maxIdleMs?: number; lastUsedAt: number };
 
 /**
  * Computes the idle expiry timestamp from `lastUsedAt + maxIdleMs`.
- * Returns `undefined` when idle timeout is not configured or the key
- * has never been used.
+ * Returns `undefined` when idle timeout is not configured.
  */
 function idleExpiresAt(key: IdleFields): number | undefined {
-  if (key.maxIdleMs === undefined || key.lastUsedAt === undefined)
-    return undefined;
+  if (key.maxIdleMs === undefined) return undefined;
   return key.lastUsedAt + key.maxIdleMs;
 }
 
@@ -188,7 +186,7 @@ const listKeyItemValidator = v.object({
   effectiveStatus: effectiveStatusValidator,
   createdAt: v.number(),
   updatedAt: v.number(),
-  lastUsedAt: v.optional(v.number()),
+  lastUsedAt: v.number(),
   expiresAt: v.optional(v.number()),
   maxIdleMs: v.optional(v.number()),
   revokedAt: v.optional(v.number()),

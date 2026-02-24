@@ -17,7 +17,7 @@ export const apiKeysFields = {
   status: apiKeyStatusValidator,
   expiresAt: v.optional(v.number()),
   maxIdleMs: v.optional(v.number()),
-  lastUsedAt: v.optional(v.number()),
+  lastUsedAt: v.number(),
   revokedAt: v.optional(v.number()),
   revocationReason: v.optional(v.string()),
   replaces: v.optional(v.id("apiKeys")),

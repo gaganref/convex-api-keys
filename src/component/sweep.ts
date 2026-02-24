@@ -7,87 +7,93 @@ import type { Id } from "./_generated/dataModel.js";
 const BATCH_SIZE = 100;
 
 function isIdleExpired(
-  key: { maxIdleMs?: number; lastUsedAt?: number },
+  key: { maxIdleMs?: number; lastUsedAt: number },
   now: number,
 ): boolean {
   return (
-    key.maxIdleMs !== undefined &&
-    key.lastUsedAt !== undefined &&
-    key.lastUsedAt + key.maxIdleMs < now
+    key.maxIdleMs !== undefined && key.lastUsedAt + key.maxIdleMs < now
   );
 }
 
 /**
  * Marks active keys past their absolute TTL as revoked.
  *
- * Processes up to 100 keys per run and automatically reschedules itself
- * when a full batch is found. Runs via the component's internal cron.
+ * Uses cursor-based pagination to scan all active keys across multiple
+ * runs. Automatically reschedules itself until all pages are processed.
+ * Runs via the component's internal cron.
  */
 export const sweepExpired = internalMutation({
-  args: {},
+  args: {
+    cursor: v.optional(v.string()),
+  },
   returns: v.object({
     swept: v.number(),
     isDone: v.boolean(),
   }),
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
     const now = Date.now();
 
-    const activeKeys = await ctx.db
+    const result = await ctx.db
       .query("apiKeys")
       .withIndex("by_status", (q) => q.eq("status", "active"))
-      .take(BATCH_SIZE);
+      .paginate({ numItems: BATCH_SIZE, cursor: args.cursor ?? null });
 
     let swept = 0;
-    for (const key of activeKeys) {
+    for (const key of result.page) {
       if (key.expiresAt !== undefined && key.expiresAt < now) {
         await markAsRevoked(ctx, key._id, key.namespace, now, "expired");
         swept++;
       }
     }
 
-    const isDone = activeKeys.length < BATCH_SIZE;
-    if (!isDone) {
-      await ctx.scheduler.runAfter(0, internal.sweep.sweepExpired, {});
+    if (!result.isDone) {
+      await ctx.scheduler.runAfter(0, internal.sweep.sweepExpired, {
+        cursor: result.continueCursor,
+      });
     }
 
-    return { swept, isDone };
+    return { swept, isDone: result.isDone };
   },
 });
 
 /**
  * Marks active keys past their idle timeout as revoked.
  *
- * Processes up to 100 keys per run and automatically reschedules itself
- * when a full batch is found. Runs via the component's internal cron.
+ * Uses cursor-based pagination to scan all active keys across multiple
+ * runs. Automatically reschedules itself until all pages are processed.
+ * Runs via the component's internal cron.
  */
 export const sweepIdleExpired = internalMutation({
-  args: {},
+  args: {
+    cursor: v.optional(v.string()),
+  },
   returns: v.object({
     swept: v.number(),
     isDone: v.boolean(),
   }),
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
     const now = Date.now();
 
-    const activeKeys = await ctx.db
+    const result = await ctx.db
       .query("apiKeys")
       .withIndex("by_status", (q) => q.eq("status", "active"))
-      .take(BATCH_SIZE);
+      .paginate({ numItems: BATCH_SIZE, cursor: args.cursor ?? null });
 
     let swept = 0;
-    for (const key of activeKeys) {
+    for (const key of result.page) {
       if (isIdleExpired(key, now)) {
         await markAsRevoked(ctx, key._id, key.namespace, now, "idle_timeout");
         swept++;
       }
     }
 
-    const isDone = activeKeys.length < BATCH_SIZE;
-    if (!isDone) {
-      await ctx.scheduler.runAfter(0, internal.sweep.sweepIdleExpired, {});
+    if (!result.isDone) {
+      await ctx.scheduler.runAfter(0, internal.sweep.sweepIdleExpired, {
+        cursor: result.continueCursor,
+      });
     }
 
-    return { swept, isDone };
+    return { swept, isDone: result.isDone };
   },
 });
 

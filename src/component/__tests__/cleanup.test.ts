@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { api, internal } from "../_generated/api.js";
 import type { Id } from "../_generated/dataModel.js";
 import { initConvexTest } from "./setup.test.js";
@@ -155,6 +155,35 @@ describe("sweepExpired", () => {
     const result = await t.mutation(internal.sweep.sweepExpired, {});
     expect(result.swept).toBe(0);
   });
+
+  test("reaches later pages when first page has no expired keys", async () => {
+    vi.useFakeTimers();
+    const t = initConvexTest();
+    const past = Date.now() - ONE_DAY * 2;
+
+    // First 100 healthy active keys (fill first page)
+    for (let i = 0; i < 100; i++) {
+      await createKey(t, { tokenHash: `healthy_exp_${i}` });
+    }
+    // 5 expired keys on later pages
+    for (let i = 0; i < 5; i++) {
+      await createKey(t, { tokenHash: `expired_late_${i}`, expiresAt: past });
+    }
+
+    const first = await t.mutation(internal.sweep.sweepExpired, {});
+    expect(first.swept).toBe(0);
+    expect(first.isDone).toBe(false);
+
+    await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+
+    const all = await t.run((ctx) => ctx.db.query("apiKeys").collect());
+    const revokedExpired = all.filter(
+      (k) => k.status === "revoked" && k.revocationReason === "expired",
+    );
+    expect(revokedExpired).toHaveLength(5);
+
+    vi.useRealTimers();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -223,6 +252,39 @@ describe("sweepIdleExpired", () => {
 
     const result = await t.mutation(internal.sweep.sweepIdleExpired, {});
     expect(result.swept).toBe(0);
+  });
+
+  test("reaches later pages when first page has no idle-expired keys", async () => {
+    vi.useFakeTimers();
+    const t = initConvexTest();
+    const past = Date.now() - ONE_DAY * 2;
+
+    // First 100 healthy active keys (no idle timeout)
+    for (let i = 0; i < 100; i++) {
+      await createKey(t, { tokenHash: `healthy_idle_${i}` });
+    }
+    // 5 idle-expired keys on later pages
+    for (let i = 0; i < 5; i++) {
+      await createKey(t, {
+        tokenHash: `idle_late_${i}`,
+        maxIdleMs: ONE_HOUR,
+        lastUsedAt: past,
+      });
+    }
+
+    const first = await t.mutation(internal.sweep.sweepIdleExpired, {});
+    expect(first.swept).toBe(0);
+    expect(first.isDone).toBe(false);
+
+    await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+
+    const all = await t.run((ctx) => ctx.db.query("apiKeys").collect());
+    const revokedIdle = all.filter(
+      (k) => k.status === "revoked" && k.revocationReason === "idle_timeout",
+    );
+    expect(revokedIdle).toHaveLength(5);
+
+    vi.useRealTimers();
   });
 });
 

@@ -60,7 +60,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             effectiveStatus: "active" | "revoked" | "expired" | "idle_timeout";
             expiresAt?: number;
             keyId: string;
-            lastUsedAt?: number;
+            lastUsedAt: number;
             maxIdleMs?: number;
             metadata?: Record<string, any>;
             name?: string;
@@ -205,7 +205,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             effectiveStatus: "active" | "revoked" | "expired" | "idle_timeout";
             expiresAt?: number;
             keyId: string;
-            lastUsedAt?: number;
+            lastUsedAt: number;
             maxIdleMs?: number;
             metadata?: Record<string, any>;
             name?: string;
@@ -270,7 +270,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           metadata?: Record<string, any>;
           name?: string;
         },
-        { keyId: string; ok: true } | { ok: false; reason: "not_found" },
+        | { keyId: string; ok: true }
+        | { ok: false; reason: "not_found" | "already_revoked" },
         Name
       >;
       validate: FunctionReference<
