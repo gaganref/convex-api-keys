@@ -9,7 +9,9 @@
  */
 
 import type * as cleanup from "../cleanup.js";
+import type * as crons from "../crons.js";
 import type * as lib from "../lib.js";
+import type * as sweep from "../sweep.js";
 
 import type {
   ApiFromModules,
@@ -20,7 +22,9 @@ import { anyApi, componentsGeneric } from "convex/server";
 
 const fullApi: ApiFromModules<{
   cleanup: typeof cleanup;
+  crons: typeof crons;
   lib: typeof lib;
+  sweep: typeof sweep;
 }> = anyApi as any;
 
 /**

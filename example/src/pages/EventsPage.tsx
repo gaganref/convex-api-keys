@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useQuery } from "convex/react";
 import { formatDistanceToNow, format } from "date-fns";
 import { Lightning, ChartBar, Tag } from "@phosphor-icons/react";
@@ -57,7 +57,7 @@ function EventsLoadingState() {
 const ONE_DAY_MS = 86_400_000;
 
 function StatsBar({ events }: { events: Array<TrackedEvent> }) {
-  const cutoff = useMemo(() => Date.now() - ONE_DAY_MS, []);
+  const [cutoff] = useState(() => Date.now() - ONE_DAY_MS);
   const today = events.filter((e) => e.receivedAt > cutoff);
   const uniqueTypes = new Set(events.map((e) => e.event)).size;
 

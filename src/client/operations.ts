@@ -5,7 +5,7 @@ import {
   normalizeApiKeysOptions,
   type NormalizedApiKeysOptions,
 } from "./options.js";
-import { ApiKeysClientError, tokenRequiredError } from "./errors.js";
+import { ApiKeysClientError, optionsError, tokenRequiredError } from "./errors.js";
 import type { FunctionReference, FunctionVisibility } from "convex/server";
 import type {
   ApiKeysTypeOptions,
@@ -51,6 +51,25 @@ function normalizeValidateToken(token: string) {
   return normalized;
 }
 
+function validatePrefix(prefix: string) {
+  if (prefix.length === 0) {
+    throw optionsError("prefix must not be empty");
+  }
+  if (prefix.length > 32) {
+    throw optionsError("prefix exceeds max allowed length (32)");
+  }
+}
+
+function validateNullableNonNegativeInteger(
+  value: number | null,
+  name: string,
+) {
+  if (value === null) return;
+  if (!Number.isInteger(value) || value < 0) {
+    throw optionsError(`${name} must be null or a non-negative integer`);
+  }
+}
+
 function resolveCreateConfig(
   args: {
     prefix?: string;
@@ -59,11 +78,15 @@ function resolveCreateConfig(
   },
   options: NormalizedApiKeysOptions,
 ) {
-  return {
-    prefix: args.prefix ?? options.keyDefaults.prefix,
-    ttlMs: args.ttlMs ?? options.keyDefaults.ttlMs,
-    idleTimeoutMs: args.idleTimeoutMs ?? options.keyDefaults.idleTimeoutMs,
-  };
+  const prefix = args.prefix ?? options.keyDefaults.prefix;
+  const ttlMs = args.ttlMs ?? options.keyDefaults.ttlMs;
+  const idleTimeoutMs = args.idleTimeoutMs ?? options.keyDefaults.idleTimeoutMs;
+
+  if (args.prefix !== undefined) validatePrefix(prefix);
+  if (args.ttlMs !== undefined) validateNullableNonNegativeInteger(ttlMs, "ttlMs");
+  if (args.idleTimeoutMs !== undefined) validateNullableNonNegativeInteger(idleTimeoutMs, "idleTimeoutMs");
+
+  return { prefix, ttlMs, idleTimeoutMs };
 }
 
 function buildCreateLifecycle(
@@ -678,6 +701,7 @@ export class ApiKeys<
 
     try {
       const tokenPrefix = args.prefix ?? this.options.keyDefaults.prefix;
+      if (args.prefix !== undefined) validatePrefix(tokenPrefix);
       const token = generateToken(
         tokenPrefix,
         this.options.keyDefaults.keyLengthBytes,
@@ -775,11 +799,12 @@ export class ApiKeys<
   }
 
   /**
-   * Delete expired and revoked keys older than the retention period.
+   * Hard-delete revoked keys older than the retention period.
    *
-   * Processes time-expired, idle-expired, and revoked keys in batches of 100.
-   * Automatically reschedules itself when a full batch is found, so large
-   * backlogs drain across multiple runs without hitting timeouts.
+   * Expired and idle keys are automatically swept to revoked status by the
+   * component's internal cron — this method only deletes revoked keys past
+   * the retention window. Processes up to 100 keys per run and automatically
+   * reschedules itself when a full batch is found.
    *
    * Call this from your app's cron job to control the schedule:
    *
@@ -796,9 +821,8 @@ export class ApiKeys<
    * @param ctx Any context that can run a mutation.
    * @param args Optional retention period override. Defaults to 30 days.
    *   See {@link CleanupExpiredArgs}.
-   * @returns `{ deleted, expired, idle, revoked, isDone }` — total and
-   *   per-category counts of keys removed, plus whether all categories
-   *   were fully processed in this run.
+   * @returns `{ deleted, isDone }` — keys hard-deleted and whether all
+   *   work was completed in this run.
    */
   async cleanupExpired(
     ctx: RunMutationCtx,

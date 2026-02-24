@@ -253,8 +253,8 @@ export type UpdateResult = FunctionReturnType<ComponentApi["lib"]["update"]>;
 
 export type CleanupExpiredArgs = {
   /**
-   * How long to retain dead keys (expired or revoked) before hard-deleting
-   * them and their audit events. Must be a positive finite number.
+   * How long to retain revoked keys before hard-deleting them and their
+   * audit events. Must be a positive finite number.
    *
    * @default 30 days
    */

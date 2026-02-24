@@ -8,9 +8,6 @@ export const cleanupExpiredKeys = internalMutation({
   args: {},
   returns: v.object({
     deleted: v.number(),
-    expired: v.number(),
-    idle: v.number(),
-    revoked: v.number(),
     isDone: v.boolean(),
   }),
   handler: async (ctx) => {

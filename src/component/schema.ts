@@ -43,8 +43,8 @@ export default defineSchema({
     .index("by_namespace_and_creation_time", ["namespace"])
     .index("by_namespace_and_status", ["namespace", "status"])
     .index("by_status_and_creation_time", ["status"])
-    .index("by_expires_at", ["expiresAt"])
-    .index("by_idle_expires_at", ["idleExpiresAt"])
+    .index("by_status_and_expires_at", ["status", "expiresAt"])
+    .index("by_status_and_idle_expires_at", ["status", "idleExpiresAt"])
     .index("by_revoked_at", ["revokedAt"]),
 
   apiKeyEvents: defineTable(apiKeyEventsFields)
