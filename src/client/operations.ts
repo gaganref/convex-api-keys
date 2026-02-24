@@ -6,7 +6,11 @@ import {
   normalizeApiKeysOptions,
   type NormalizedApiKeysOptions,
 } from "./options.js";
-import { ApiKeysClientError, optionsError, tokenRequiredError } from "./errors.js";
+import {
+  ApiKeysClientError,
+  optionsError,
+  tokenRequiredError,
+} from "./errors.js";
 import type { FunctionReference, FunctionVisibility } from "convex/server";
 import type {
   ApiKeysTypeOptions,
@@ -74,8 +78,10 @@ function resolveCreateConfig(
   const idleTimeoutMs = args.idleTimeoutMs ?? options.keyDefaults.idleTimeoutMs;
 
   if (args.prefix !== undefined) validatePrefix(prefix);
-  if (args.ttlMs !== undefined) assertNullableNonNegativeInteger(ttlMs, "ttlMs");
-  if (args.idleTimeoutMs !== undefined) assertNullableNonNegativeInteger(idleTimeoutMs, "idleTimeoutMs");
+  if (args.ttlMs !== undefined)
+    assertNullableNonNegativeInteger(ttlMs, "ttlMs");
+  if (args.idleTimeoutMs !== undefined)
+    assertNullableNonNegativeInteger(idleTimeoutMs, "idleTimeoutMs");
 
   return { prefix, ttlMs, idleTimeoutMs };
 }

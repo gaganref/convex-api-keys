@@ -38,7 +38,9 @@ export function StatsCard({
           {value}
         </div>
         {description && (
-          <p className="text-[11px] text-muted-foreground mt-1">{description}</p>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            {description}
+          </p>
         )}
         {progress !== undefined && (
           <div className="mt-2 h-1 rounded-full bg-muted overflow-hidden">

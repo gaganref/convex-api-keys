@@ -11,7 +11,11 @@ type KeyTokenRevealProps = {
   onDone: () => void;
 };
 
-export function KeyTokenReveal({ token, keyName, onDone }: KeyTokenRevealProps) {
+export function KeyTokenReveal({
+  token,
+  keyName,
+  onDone,
+}: KeyTokenRevealProps) {
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
@@ -36,9 +40,7 @@ export function KeyTokenReveal({ token, keyName, onDone }: KeyTokenRevealProps) 
 
       <div className="token-card border flex flex-col gap-3 p-4">
         <div className="flex items-center justify-between">
-          <span className="token-card-label text-xs font-mono">
-            {keyName}
-          </span>
+          <span className="token-card-label text-xs font-mono">{keyName}</span>
           <span className="token-card-badge text-[10px] px-1.5 py-0.5 rounded font-mono font-bold tracking-wider">
             NEW KEY
           </span>

@@ -303,7 +303,7 @@ export const rotateKey = mutation({
       tokenLast4: v.string(),
       createdAt: v.number(),
       expiresAt: v.optional(v.number()),
-      }),
+    }),
     v.object({
       ok: v.literal(false),
       reason: v.union(

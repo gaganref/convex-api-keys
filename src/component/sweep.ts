@@ -10,9 +10,7 @@ function isIdleExpired(
   key: { maxIdleMs?: number; lastUsedAt: number },
   now: number,
 ): boolean {
-  return (
-    key.maxIdleMs !== undefined && key.lastUsedAt + key.maxIdleMs < now
-  );
+  return key.maxIdleMs !== undefined && key.lastUsedAt + key.maxIdleMs < now;
 }
 
 /**

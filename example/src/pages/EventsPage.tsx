@@ -114,7 +114,10 @@ function EventsTable({ events }: { events: Array<TrackedEvent> }) {
   if (ordered.length === 0) {
     return (
       <div className="py-12 text-center">
-        <Lightning size={24} className="mx-auto text-muted-foreground/50 mb-2" />
+        <Lightning
+          size={24}
+          className="mx-auto text-muted-foreground/50 mb-2"
+        />
         <p className="text-sm text-muted-foreground">No events yet.</p>
         <p className="text-xs text-muted-foreground mt-0.5">
           Send a tracking event via the /track endpoint to see it here.

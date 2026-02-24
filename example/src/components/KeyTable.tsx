@@ -68,7 +68,11 @@ const STATUS_CONFIG: Record<
 function StatusDot({ status }: { status: KeyStatus }) {
   const config = STATUS_CONFIG[status];
   return (
-    <div className="flex items-center gap-1.5" role="status" aria-label={`Status: ${config.label}`}>
+    <div
+      className="flex items-center gap-1.5"
+      role="status"
+      aria-label={`Status: ${config.label}`}
+    >
       <div
         className={cn(
           "size-1.5 rounded-full",
@@ -94,9 +98,15 @@ export function KeyTable({ namespace }: KeyTableProps) {
     { initialNumItems: PAGE_SIZE },
   );
   const [auditKey, setAuditKey] = useState<MockApiKey | null>(null);
-  const [rotateCandidate, setRotateCandidate] = useState<MockApiKey | null>(null);
-  const [revokeCandidate, setRevokeCandidate] = useState<MockApiKey | null>(null);
-  const [renameCandidate, setRenameCandidate] = useState<MockApiKey | null>(null);
+  const [rotateCandidate, setRotateCandidate] = useState<MockApiKey | null>(
+    null,
+  );
+  const [revokeCandidate, setRevokeCandidate] = useState<MockApiKey | null>(
+    null,
+  );
+  const [renameCandidate, setRenameCandidate] = useState<MockApiKey | null>(
+    null,
+  );
 
   const keys: Array<MockApiKey> = results.map((row) => ({
     id: row.keyId,
@@ -147,11 +157,21 @@ export function KeyTable({ namespace }: KeyTableProps) {
           <TableHeader>
             <TableRow>
               <TableHead className="text-xs">Name</TableHead>
-              <TableHead className="text-xs hidden sm:table-cell">Key</TableHead>
-              <TableHead className="text-xs hidden md:table-cell">Permissions</TableHead>
-              <TableHead className="text-xs hidden lg:table-cell">Created</TableHead>
-              <TableHead className="text-xs hidden lg:table-cell">Last Used</TableHead>
-              <TableHead className="text-xs hidden md:table-cell">Expires</TableHead>
+              <TableHead className="text-xs hidden sm:table-cell">
+                Key
+              </TableHead>
+              <TableHead className="text-xs hidden md:table-cell">
+                Permissions
+              </TableHead>
+              <TableHead className="text-xs hidden lg:table-cell">
+                Created
+              </TableHead>
+              <TableHead className="text-xs hidden lg:table-cell">
+                Last Used
+              </TableHead>
+              <TableHead className="text-xs hidden md:table-cell">
+                Expires
+              </TableHead>
               <TableHead className="text-xs">Status</TableHead>
               <TableHead className="w-10" />
             </TableRow>
@@ -160,7 +180,10 @@ export function KeyTable({ namespace }: KeyTableProps) {
             {keys.map((key) => (
               <TableRow
                 key={key.id}
-                className={cn("text-xs", key.status !== "active" && "opacity-60")}
+                className={cn(
+                  "text-xs",
+                  key.status !== "active" && "opacity-60",
+                )}
               >
                 <TableCell className="font-medium">{key.name}</TableCell>
                 <TableCell className="hidden sm:table-cell">

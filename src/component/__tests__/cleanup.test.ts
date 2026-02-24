@@ -51,7 +51,10 @@ async function revokeKey(
   });
 }
 
-async function getKey(t: ReturnType<typeof initConvexTest>, keyId: Id<"apiKeys">) {
+async function getKey(
+  t: ReturnType<typeof initConvexTest>,
+  keyId: Id<"apiKeys">,
+) {
   return t.query(api.lib.getKey, { keyId, now: Date.now() });
 }
 

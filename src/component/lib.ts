@@ -96,9 +96,7 @@ const failureReasonValidator = v.union(
   v.literal("idle_timeout"),
 );
 
-const orderValidator = v.optional(
-  v.union(v.literal("asc"), v.literal("desc")),
-);
+const orderValidator = v.optional(v.union(v.literal("asc"), v.literal("desc")));
 
 const logLevelValidator = v.optional(
   v.union(
@@ -490,9 +488,7 @@ export const listKeyEvents = query({
   handler: async (ctx, args) => {
     const result = await paginator(ctx.db, schema)
       .query("apiKeyEvents")
-      .withIndex("by_key_id", (q) =>
-        q.eq("keyId", args.keyId),
-      )
+      .withIndex("by_key_id", (q) => q.eq("keyId", args.keyId))
       .order(args.order ?? "desc")
       .paginate(args.paginationOpts);
 
@@ -521,9 +517,7 @@ export const listEvents = query({
       args.namespace === undefined
         ? await pages.order(order).paginate(args.paginationOpts)
         : await pages
-            .withIndex("by_namespace", (q) =>
-              q.eq("namespace", args.namespace),
-            )
+            .withIndex("by_namespace", (q) => q.eq("namespace", args.namespace))
             .order(order)
             .paginate(args.paginationOpts);
 
@@ -688,12 +682,16 @@ export const update = mutation({
       // Removing optional fields requires replace (patch can't unset).
       const { _id, _creationTime, ...rest } = key;
       const updated = { ...rest, updatedAt: now };
-      if (removeExpiresAt) delete (updated as Record<string, unknown>).expiresAt;
-      if (removeMaxIdleMs) delete (updated as Record<string, unknown>).maxIdleMs;
+      if (removeExpiresAt)
+        delete (updated as Record<string, unknown>).expiresAt;
+      if (removeMaxIdleMs)
+        delete (updated as Record<string, unknown>).maxIdleMs;
       if (args.name !== undefined) updated.name = args.name;
       if (args.metadata !== undefined) updated.metadata = args.metadata;
-      if (typeof args.expiresAt === "number") updated.expiresAt = args.expiresAt;
-      if (typeof args.maxIdleMs === "number") updated.maxIdleMs = args.maxIdleMs;
+      if (typeof args.expiresAt === "number")
+        updated.expiresAt = args.expiresAt;
+      if (typeof args.maxIdleMs === "number")
+        updated.maxIdleMs = args.maxIdleMs;
       await ctx.db.replace(_id, updated);
     } else {
       const patch: {

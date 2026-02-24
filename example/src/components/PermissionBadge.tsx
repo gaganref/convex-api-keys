@@ -31,7 +31,11 @@ export function PermissionBadge({
   return (
     <Badge
       variant="outline"
-      className={cn("text-[10px] font-mono px-1.5 py-0", config.className, className)}
+      className={cn(
+        "text-[10px] font-mono px-1.5 py-0",
+        config.className,
+        className,
+      )}
     >
       {config.label}
     </Badge>

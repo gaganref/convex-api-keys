@@ -366,9 +366,7 @@ describe("component lib", () => {
     const events = await t.run(async (ctx) =>
       ctx.db
         .query("apiKeyEvents")
-        .withIndex("by_key_id", (q) =>
-          q.eq("keyId", created.keyId),
-        )
+        .withIndex("by_key_id", (q) => q.eq("keyId", created.keyId))
         .collect(),
     );
     expect(events.some((event) => event.type === "revoked")).toBe(true);

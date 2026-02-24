@@ -90,9 +90,7 @@ export function LoginPage() {
               autoComplete="off"
               className="font-mono"
             />
-            {error && (
-              <p className="text-xs text-destructive">{error}</p>
-            )}
+            {error && <p className="text-xs text-destructive">{error}</p>}
             <Button type="submit" className="w-full">
               Enter workspace
             </Button>

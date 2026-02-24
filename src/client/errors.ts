@@ -29,11 +29,7 @@ export class ApiKeysClientError extends Error {
   readonly code: ApiKeysClientErrorCode;
   readonly cause?: unknown;
 
-  constructor(
-    code: ApiKeysClientErrorCode,
-    message: string,
-    cause?: unknown,
-  ) {
+  constructor(code: ApiKeysClientErrorCode, message: string, cause?: unknown) {
     super(message);
     this.code = code;
     this.cause = cause;

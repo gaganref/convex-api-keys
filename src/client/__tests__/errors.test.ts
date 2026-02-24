@@ -1,9 +1,5 @@
 import { describe, expect, test } from "vitest";
-import {
-  ApiKeys,
-  ApiKeysClientError,
-  isApiKeysClientError,
-} from "../index.js";
+import { ApiKeys, ApiKeysClientError, isApiKeysClientError } from "../index.js";
 import { normalizeApiKeysOptions } from "../options.js";
 import { components, initConvexTest } from "./setup.test.js";
 import type { RunQueryCtx } from "../types.js";
@@ -22,8 +18,7 @@ describe("error contracts", () => {
     };
 
     await expect(client.validate(ctx, { token: "  " })).rejects.toSatisfy(
-      (e: unknown) =>
-        isApiKeysClientError(e) && e.code === "TOKEN_REQUIRED",
+      (e: unknown) => isApiKeysClientError(e) && e.code === "TOKEN_REQUIRED",
     );
   });
 

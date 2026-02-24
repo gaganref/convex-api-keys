@@ -51,9 +51,7 @@ test("client type contracts remain stable", () => {
     {},
   );
 
-  type RequireNameCreateArgs = Parameters<
-    typeof _requireNameClient.create
-  >[1];
+  type RequireNameCreateArgs = Parameters<typeof _requireNameClient.create>[1];
 
   // @ts-expect-error name is required when requireName is true.
   const missingName: RequireNameCreateArgs = {};
