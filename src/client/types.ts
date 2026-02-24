@@ -123,7 +123,6 @@ export type CreateResult = {
   tokenLast4: string;
   createdAt: CreateMutationResult["createdAt"];
   expiresAt?: number;
-  idleExpiresAt?: number;
 };
 
 export type ValidateArgs = {
@@ -247,6 +246,8 @@ export type UpdateArgs = {
   metadata?: ApiKeyMetadata;
   /** Pass `null` to remove the expiry entirely. */
   expiresAt?: number | null;
+  /** Pass `null` to remove the idle timeout entirely. */
+  maxIdleMs?: number | null;
 };
 
 export type UpdateResult = FunctionReturnType<ComponentApi["lib"]["update"]>;

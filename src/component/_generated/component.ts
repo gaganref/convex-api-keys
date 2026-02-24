@@ -38,7 +38,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         "internal",
         {
           expiresAt?: number;
-          idleExpiresAt?: number;
           logLevel?: "debug" | "warn" | "error" | "none";
           maxIdleMs?: number;
           metadata?: Record<string, any>;
@@ -60,9 +59,9 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             createdAt: number;
             effectiveStatus: "active" | "revoked" | "expired" | "idle_timeout";
             expiresAt?: number;
-            idleExpiresAt?: number;
             keyId: string;
             lastUsedAt?: number;
+            maxIdleMs?: number;
             metadata?: Record<string, any>;
             name?: string;
             namespace?: string;
@@ -205,9 +204,9 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             createdAt: number;
             effectiveStatus: "active" | "revoked" | "expired" | "idle_timeout";
             expiresAt?: number;
-            idleExpiresAt?: number;
             keyId: string;
             lastUsedAt?: number;
+            maxIdleMs?: number;
             metadata?: Record<string, any>;
             name?: string;
             namespace?: string;
@@ -239,7 +238,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         | {
             createdAt: number;
             expiresAt?: number;
-            idleExpiresAt?: number;
             keyId: string;
             ok: true;
             replacedKeyId: string;
@@ -254,7 +252,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         "mutation",
         "internal",
         { keyId: string; now: number },
-        | { idleExpiresAt?: number; keyId: string; ok: true; touchedAt: number }
+        | { keyId: string; ok: true; touchedAt: number }
         | {
             ok: false;
             reason: "not_found" | "revoked" | "expired" | "idle_timeout";
@@ -268,6 +266,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           expiresAt?: number | null;
           keyId: string;
           logLevel?: "debug" | "warn" | "error" | "none";
+          maxIdleMs?: number | null;
           metadata?: Record<string, any>;
           name?: string;
         },

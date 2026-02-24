@@ -192,7 +192,6 @@ export const createKey = mutation({
     tokenLast4: v.string(),
     createdAt: v.number(),
     expiresAt: v.optional(v.number()),
-    idleExpiresAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const name = args.name.trim();
@@ -304,8 +303,7 @@ export const rotateKey = mutation({
       tokenLast4: v.string(),
       createdAt: v.number(),
       expiresAt: v.optional(v.number()),
-      idleExpiresAt: v.optional(v.number()),
-    }),
+      }),
     v.object({
       ok: v.literal(false),
       reason: v.union(

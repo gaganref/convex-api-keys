@@ -17,7 +17,6 @@ export const apiKeysFields = {
   status: apiKeyStatusValidator,
   expiresAt: v.optional(v.number()),
   maxIdleMs: v.optional(v.number()),
-  idleExpiresAt: v.optional(v.number()),
   lastUsedAt: v.optional(v.number()),
   revokedAt: v.optional(v.number()),
   revocationReason: v.optional(v.string()),
@@ -40,15 +39,11 @@ export const apiKeyEventsFields = {
 export default defineSchema({
   apiKeys: defineTable(apiKeysFields)
     .index("by_token_hash", ["tokenHash"])
-    .index("by_namespace_and_creation_time", ["namespace"])
+    .index("by_status", ["status"])
     .index("by_namespace_and_status", ["namespace", "status"])
-    .index("by_status_and_creation_time", ["status"])
-    .index("by_status_and_expires_at", ["status", "expiresAt"])
-    .index("by_status_and_idle_expires_at", ["status", "idleExpiresAt"])
     .index("by_revoked_at", ["revokedAt"]),
 
   apiKeyEvents: defineTable(apiKeyEventsFields)
-    .index("by_key_id_and_creation_time", ["keyId"])
-    .index("by_namespace_and_creation_time", ["namespace"])
-    .index("by_type_and_creation_time", ["type"]),
+    .index("by_key_id", ["keyId"])
+    .index("by_namespace", ["namespace"]),
 });

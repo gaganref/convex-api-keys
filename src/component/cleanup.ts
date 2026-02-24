@@ -75,7 +75,7 @@ async function deleteKeyAndEvents(
 ): Promise<void> {
   const events = await ctx.db
     .query("apiKeyEvents")
-    .withIndex("by_key_id_and_creation_time", (q) => q.eq("keyId", keyId))
+    .withIndex("by_key_id", (q) => q.eq("keyId", keyId))
     .collect();
   for (const event of events) {
     await ctx.db.delete(event._id);

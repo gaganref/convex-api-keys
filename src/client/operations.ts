@@ -96,7 +96,6 @@ function buildCreateLifecycle(
 ) {
   return {
     expiresAt: ttlMs === null ? undefined : now + ttlMs,
-    idleExpiresAt: idleTimeoutMs === null ? undefined : now + idleTimeoutMs,
     maxIdleMs: idleTimeoutMs === null ? undefined : idleTimeoutMs,
   };
 }
@@ -283,7 +282,6 @@ export class ApiKeys<
         metadata: (args as { metadata?: Record<string, unknown> }).metadata,
         expiresAt: lifecycle.expiresAt,
         maxIdleMs: lifecycle.maxIdleMs,
-        idleExpiresAt: lifecycle.idleExpiresAt,
         logLevel: this.options.logLevel,
       });
 
@@ -299,7 +297,6 @@ export class ApiKeys<
         tokenLast4: last4,
         createdAt: result.createdAt,
         expiresAt: lifecycle.expiresAt,
-        idleExpiresAt: lifecycle.idleExpiresAt,
       };
     } catch (error) {
       logWithLevel(this.options.logLevel, "error", "create", {
@@ -499,13 +496,13 @@ export class ApiKeys<
   /**
    * Touch an API key, updating `lastUsedAt` and resetting the idle timeout.
    *
-   * If the key has a `maxIdleMs` configured, `idleExpiresAt` is recalculated
-   * from the current time. Call this during request handling to keep
+   * If the key has a `maxIdleMs` configured, the idle expiry is derived from
+   * `lastUsedAt + maxIdleMs`. Call this during request handling to keep
    * idle-timeout keys alive.
    *
    * @param ctx Any context that can run a mutation.
    * @param args The key ID to touch. See {@link TouchArgs}.
-   * @returns `{ ok: true, keyId, touchedAt, idleExpiresAt? }` on success,
+   * @returns `{ ok: true, keyId, touchedAt }` on success,
    *   or `{ ok: false, reason }` if the key is not found or inactive.
    */
   async touch(ctx: RunMutationCtx, args: TouchArgs): Promise<TouchResult> {
@@ -773,6 +770,7 @@ export class ApiKeys<
         name: args.name,
         metadata: args.metadata,
         expiresAt: args.expiresAt,
+        maxIdleMs: args.maxIdleMs,
         logLevel: this.options.logLevel,
       });
 

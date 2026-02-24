@@ -116,7 +116,7 @@ describe("component lib", () => {
     expect(result).toEqual({ ok: false, reason: "revoked" });
   });
 
-  test("touch updates last used and idle expiration", async () => {
+  test("touch updates lastUsedAt", async () => {
     const t = initConvexTest();
     const now = Date.now();
     const created = await t.mutation(api.lib.create, {
@@ -124,7 +124,6 @@ describe("component lib", () => {
       tokenPrefix: "ak_",
       tokenLast4: "4444",
       maxIdleMs: 60_000,
-      idleExpiresAt: now + 60_000,
     });
 
     const touchedAt = now + 1_000;
@@ -137,12 +136,10 @@ describe("component lib", () => {
       ok: true,
       keyId: created.keyId,
       touchedAt,
-      idleExpiresAt: touchedAt + 60_000,
     });
 
     const key = await t.run(async (ctx) => ctx.db.get(created.keyId));
     expect(key?.lastUsedAt).toBe(touchedAt);
-    expect(key?.idleExpiresAt).toBe(touchedAt + 60_000);
   });
 
   test("touch returns expired when key is no longer active", async () => {
@@ -257,7 +254,7 @@ describe("component lib", () => {
     const events = await t.run(async (ctx) =>
       ctx.db
         .query("apiKeyEvents")
-        .withIndex("by_key_id_and_creation_time", (q) =>
+        .withIndex("by_key_id", (q) =>
           q.eq("keyId", created.keyId),
         )
         .collect(),
@@ -297,7 +294,6 @@ describe("component lib", () => {
       name: "rotatable",
       permissions: { beacon: ["events:write"] },
       maxIdleMs: 60_000,
-      idleExpiresAt: now + 60_000,
     });
 
     const refreshed = await t.mutation(api.lib.refresh, {

@@ -16,19 +16,31 @@ import schema from "./schema.js";
 // Helpers
 // ---------------------------------------------------------------------------
 
+type IdleFields = { maxIdleMs?: number; lastUsedAt?: number };
+
+/**
+ * Computes the idle expiry timestamp from `lastUsedAt + maxIdleMs`.
+ * Returns `undefined` when idle timeout is not configured or the key
+ * has never been used.
+ */
+function idleExpiresAt(key: IdleFields): number | undefined {
+  if (key.maxIdleMs === undefined || key.lastUsedAt === undefined)
+    return undefined;
+  return key.lastUsedAt + key.maxIdleMs;
+}
+
 type StatusFields = {
   status: ApiKeyStatus;
   expiresAt?: number;
-  idleExpiresAt?: number;
-};
+} & IdleFields;
 
 type EffectiveStatus = "active" | "revoked" | "expired" | "idle_timeout";
 
 function effectiveStatus(key: StatusFields, now: number): EffectiveStatus {
   if (key.status === "revoked") return "revoked";
   if (key.expiresAt !== undefined && now >= key.expiresAt) return "expired";
-  if (key.idleExpiresAt !== undefined && now >= key.idleExpiresAt)
-    return "idle_timeout";
+  const idle = idleExpiresAt(key);
+  if (idle !== undefined && now >= idle) return "idle_timeout";
   return "active";
 }
 
@@ -124,7 +136,6 @@ const touchResultValidator = v.union(
     ok: v.literal(true),
     keyId: v.id("apiKeys"),
     touchedAt: v.number(),
-    idleExpiresAt: v.optional(v.number()),
   }),
   v.object({
     ok: v.literal(false),
@@ -151,7 +162,6 @@ const refreshResultValidator = v.union(
     replacedKeyId: v.id("apiKeys"),
     createdAt: v.number(),
     expiresAt: v.optional(v.number()),
-    idleExpiresAt: v.optional(v.number()),
   }),
   v.object({
     ok: v.literal(false),
@@ -180,7 +190,7 @@ const listKeyItemValidator = v.object({
   updatedAt: v.number(),
   lastUsedAt: v.optional(v.number()),
   expiresAt: v.optional(v.number()),
-  idleExpiresAt: v.optional(v.number()),
+  maxIdleMs: v.optional(v.number()),
   revokedAt: v.optional(v.number()),
   revocationReason: v.optional(v.string()),
   replaces: v.optional(v.id("apiKeys")),
@@ -246,7 +256,6 @@ export const create = mutation({
     metadata: v.optional(metadataValidator),
     expiresAt: v.optional(v.number()),
     maxIdleMs: v.optional(v.number()),
-    idleExpiresAt: v.optional(v.number()),
     logLevel: logLevelValidator,
   },
   returns: createResultValidator,
@@ -271,7 +280,7 @@ export const create = mutation({
       status: "active" as const,
       expiresAt: args.expiresAt,
       maxIdleMs: args.maxIdleMs,
-      idleExpiresAt: args.idleExpiresAt,
+      lastUsedAt: now,
       updatedAt: now,
     });
 
@@ -356,11 +365,8 @@ export const touch = mutation({
       return { ok: false as const, reason: status };
     }
 
-    const idleExpiresAt =
-      key.maxIdleMs === undefined ? undefined : args.now + key.maxIdleMs;
     await ctx.db.patch(key._id, {
       lastUsedAt: args.now,
-      idleExpiresAt,
       updatedAt: args.now,
     });
 
@@ -368,7 +374,6 @@ export const touch = mutation({
       ok: true as const,
       keyId: key._id,
       touchedAt: args.now,
-      idleExpiresAt,
     };
   },
 });
@@ -390,25 +395,17 @@ export const listKeys = query({
     const order = args.order ?? "desc";
 
     let result;
-    if (args.namespace !== undefined && args.status !== undefined) {
+    if (args.namespace !== undefined) {
       result = await pages
-        .withIndex("by_namespace_and_status", (q) =>
-          q.eq("namespace", args.namespace).eq("status", args.status!),
-        )
-        .order(order)
-        .paginate(args.paginationOpts);
-    } else if (args.namespace !== undefined) {
-      result = await pages
-        .withIndex("by_namespace_and_creation_time", (q) =>
-          q.eq("namespace", args.namespace),
-        )
+        .withIndex("by_namespace_and_status", (q) => {
+          const q1 = q.eq("namespace", args.namespace);
+          return args.status ? q1.eq("status", args.status) : q1;
+        })
         .order(order)
         .paginate(args.paginationOpts);
     } else if (args.status !== undefined) {
       result = await pages
-        .withIndex("by_status_and_creation_time", (q) =>
-          q.eq("status", args.status!),
-        )
+        .withIndex("by_status", (q) => q.eq("status", args.status!))
         .order(order)
         .paginate(args.paginationOpts);
     } else {
@@ -432,7 +429,7 @@ export const listKeys = query({
         updatedAt: key.updatedAt,
         lastUsedAt: key.lastUsedAt,
         expiresAt: key.expiresAt,
-        idleExpiresAt: key.idleExpiresAt,
+        maxIdleMs: key.maxIdleMs,
         revokedAt: key.revokedAt,
         revocationReason: key.revocationReason,
         replaces: key.replaces,
@@ -471,7 +468,7 @@ export const getKey = query({
       updatedAt: key.updatedAt,
       lastUsedAt: key.lastUsedAt,
       expiresAt: key.expiresAt,
-      idleExpiresAt: key.idleExpiresAt,
+      maxIdleMs: key.maxIdleMs,
       revokedAt: key.revokedAt,
       revocationReason: key.revocationReason,
       replaces: key.replaces,
@@ -492,7 +489,7 @@ export const listKeyEvents = query({
   handler: async (ctx, args) => {
     const result = await paginator(ctx.db, schema)
       .query("apiKeyEvents")
-      .withIndex("by_key_id_and_creation_time", (q) =>
+      .withIndex("by_key_id", (q) =>
         q.eq("keyId", args.keyId),
       )
       .order(args.order ?? "desc")
@@ -523,7 +520,7 @@ export const listEvents = query({
       args.namespace === undefined
         ? await pages.order(order).paginate(args.paginationOpts)
         : await pages
-            .withIndex("by_namespace_and_creation_time", (q) =>
+            .withIndex("by_namespace", (q) =>
               q.eq("namespace", args.namespace),
             )
             .order(order)
@@ -601,17 +598,15 @@ export const invalidateAll = mutation({
   handler: async (ctx, args) => {
     const pages = paginator(ctx.db, schema).query("apiKeys");
     const result =
-      args.namespace === undefined
+      args.namespace !== undefined
         ? await pages
-            .withIndex("by_status_and_creation_time", (q) =>
-              q.eq("status", "active"),
+            .withIndex("by_namespace_and_status", (q) =>
+              q.eq("namespace", args.namespace).eq("status", "active"),
             )
             .order("desc")
             .paginate(args.paginationOpts)
         : await pages
-            .withIndex("by_namespace_and_status", (q) =>
-              q.eq("namespace", args.namespace).eq("status", "active"),
-            )
+            .withIndex("by_status", (q) => q.eq("status", "active"))
             .order("desc")
             .paginate(args.paginationOpts);
 
@@ -670,6 +665,7 @@ export const update = mutation({
     name: v.optional(v.string()),
     metadata: v.optional(metadataValidator),
     expiresAt: v.optional(v.union(v.number(), v.null())),
+    maxIdleMs: v.optional(v.union(v.number(), v.null())),
     logLevel: logLevelValidator,
   },
   returns: updateResultValidator,
@@ -681,25 +677,32 @@ export const update = mutation({
 
     const now = Date.now();
 
-    if (args.expiresAt === null) {
-      // Removing expiresAt requires replace (patch can't unset fields).
-      const { _id, _creationTime, expiresAt: _removed, ...rest } = key;
-      await ctx.db.replace(_id, {
-        ...rest,
-        updatedAt: now,
-        ...(args.name !== undefined && { name: args.name }),
-        ...(args.metadata !== undefined && { metadata: args.metadata }),
-      });
+    const removeExpiresAt = args.expiresAt === null;
+    const removeMaxIdleMs = args.maxIdleMs === null;
+
+    if (removeExpiresAt || removeMaxIdleMs) {
+      // Removing optional fields requires replace (patch can't unset).
+      const { _id, _creationTime, ...rest } = key;
+      const updated = { ...rest, updatedAt: now };
+      if (removeExpiresAt) delete (updated as Record<string, unknown>).expiresAt;
+      if (removeMaxIdleMs) delete (updated as Record<string, unknown>).maxIdleMs;
+      if (args.name !== undefined) updated.name = args.name;
+      if (args.metadata !== undefined) updated.metadata = args.metadata;
+      if (typeof args.expiresAt === "number") updated.expiresAt = args.expiresAt;
+      if (typeof args.maxIdleMs === "number") updated.maxIdleMs = args.maxIdleMs;
+      await ctx.db.replace(_id, updated);
     } else {
       const patch: {
         updatedAt: number;
         name?: string;
         metadata?: Record<string, any>;
         expiresAt?: number;
+        maxIdleMs?: number;
       } = { updatedAt: now };
       if (args.name !== undefined) patch.name = args.name;
       if (args.metadata !== undefined) patch.metadata = args.metadata;
-      if (args.expiresAt !== undefined) patch.expiresAt = args.expiresAt;
+      if (typeof args.expiresAt === "number") patch.expiresAt = args.expiresAt;
+      if (typeof args.maxIdleMs === "number") patch.maxIdleMs = args.maxIdleMs;
       await ctx.db.patch(key._id, patch);
     }
 
@@ -745,8 +748,6 @@ export const refresh = mutation({
       throwDuplicateTokenHashError();
     }
 
-    const idleExpiresAt =
-      key.maxIdleMs === undefined ? undefined : args.now + key.maxIdleMs;
     const newKeyId = await ctx.db.insert("apiKeys", {
       tokenHash: args.tokenHash,
       tokenPrefix: args.tokenPrefix,
@@ -758,7 +759,7 @@ export const refresh = mutation({
       status: "active" as const,
       expiresAt: key.expiresAt,
       maxIdleMs: key.maxIdleMs,
-      idleExpiresAt,
+      lastUsedAt: args.now,
       replaces: key._id,
       updatedAt: args.now,
     });
@@ -797,7 +798,6 @@ export const refresh = mutation({
       replacedKeyId: key._id,
       createdAt: args.now,
       expiresAt: key.expiresAt,
-      idleExpiresAt,
     };
   },
 });

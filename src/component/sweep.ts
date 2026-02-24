@@ -6,6 +6,17 @@ import type { Id } from "./_generated/dataModel.js";
 
 const BATCH_SIZE = 100;
 
+function isIdleExpired(
+  key: { maxIdleMs?: number; lastUsedAt?: number },
+  now: number,
+): boolean {
+  return (
+    key.maxIdleMs !== undefined &&
+    key.lastUsedAt !== undefined &&
+    key.lastUsedAt + key.maxIdleMs < now
+  );
+}
+
 /**
  * Marks active keys past their absolute TTL as revoked.
  *
@@ -21,23 +32,25 @@ export const sweepExpired = internalMutation({
   handler: async (ctx) => {
     const now = Date.now();
 
-    const expiredKeys = await ctx.db
+    const activeKeys = await ctx.db
       .query("apiKeys")
-      .withIndex("by_status_and_expires_at", (q) =>
-        q.eq("status", "active").gte("expiresAt", 0).lt("expiresAt", now),
-      )
+      .withIndex("by_status", (q) => q.eq("status", "active"))
       .take(BATCH_SIZE);
 
-    for (const key of expiredKeys) {
-      await markAsRevoked(ctx, key._id, key.namespace, now, "expired");
+    let swept = 0;
+    for (const key of activeKeys) {
+      if (key.expiresAt !== undefined && key.expiresAt < now) {
+        await markAsRevoked(ctx, key._id, key.namespace, now, "expired");
+        swept++;
+      }
     }
 
-    const isDone = expiredKeys.length < BATCH_SIZE;
+    const isDone = activeKeys.length < BATCH_SIZE;
     if (!isDone) {
       await ctx.scheduler.runAfter(0, internal.sweep.sweepExpired, {});
     }
 
-    return { swept: expiredKeys.length, isDone };
+    return { swept, isDone };
   },
 });
 
@@ -56,26 +69,25 @@ export const sweepIdleExpired = internalMutation({
   handler: async (ctx) => {
     const now = Date.now();
 
-    const idleExpiredKeys = await ctx.db
+    const activeKeys = await ctx.db
       .query("apiKeys")
-      .withIndex("by_status_and_idle_expires_at", (q) =>
-        q
-          .eq("status", "active")
-          .gte("idleExpiresAt", 0)
-          .lt("idleExpiresAt", now),
-      )
+      .withIndex("by_status", (q) => q.eq("status", "active"))
       .take(BATCH_SIZE);
 
-    for (const key of idleExpiredKeys) {
-      await markAsRevoked(ctx, key._id, key.namespace, now, "idle_timeout");
+    let swept = 0;
+    for (const key of activeKeys) {
+      if (isIdleExpired(key, now)) {
+        await markAsRevoked(ctx, key._id, key.namespace, now, "idle_timeout");
+        swept++;
+      }
     }
 
-    const isDone = idleExpiredKeys.length < BATCH_SIZE;
+    const isDone = activeKeys.length < BATCH_SIZE;
     if (!isDone) {
       await ctx.scheduler.runAfter(0, internal.sweep.sweepIdleExpired, {});
     }
 
-    return { swept: idleExpiredKeys.length, isDone };
+    return { swept, isDone };
   },
 });
 

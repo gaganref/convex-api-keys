@@ -2,11 +2,12 @@
 
 import { describe, expect, test } from "vitest";
 import { api, internal } from "../_generated/api.js";
+import type { Id } from "../_generated/dataModel.js";
 import { initConvexTest } from "./setup.test.js";
 
 // Helper: create a key via the component's create mutation.
-// Default expiresAt/idleExpiresAt are set to FAR_FUTURE so they don't
-// interfere with sweep queries. Tests override to control behavior.
+// Default expiresAt is set to FAR_FUTURE so it doesn't interfere with
+// sweep queries. Tests override to control behavior.
 const FAR_FUTURE = Date.now() + 365 * 86_400_000;
 
 async function createKey(
@@ -15,24 +16,32 @@ async function createKey(
     tokenHash: string;
     expiresAt?: number;
     maxIdleMs?: number;
-    idleExpiresAt?: number;
+    lastUsedAt?: number;
     namespace?: string;
   },
 ) {
-  return t.mutation(api.lib.create, {
+  const result = await t.mutation(api.lib.create, {
     tokenHash: overrides.tokenHash,
     tokenPrefix: "ak_",
     tokenLast4: "test",
     namespace: overrides.namespace ?? "cleanup-ns",
     expiresAt: overrides.expiresAt ?? FAR_FUTURE,
     maxIdleMs: overrides.maxIdleMs,
-    idleExpiresAt: overrides.idleExpiresAt ?? FAR_FUTURE,
   });
+
+  // If lastUsedAt is provided, patch it directly (simulates a past touch)
+  if (overrides.lastUsedAt !== undefined) {
+    await t.run(async (ctx) => {
+      await ctx.db.patch(result.keyId, { lastUsedAt: overrides.lastUsedAt });
+    });
+  }
+
+  return result;
 }
 
 async function revokeKey(
   t: ReturnType<typeof initConvexTest>,
-  keyId: string,
+  keyId: Id<"apiKeys">,
   now?: number,
 ) {
   return t.mutation(api.lib.invalidate, {
@@ -42,7 +51,7 @@ async function revokeKey(
   });
 }
 
-async function getKey(t: ReturnType<typeof initConvexTest>, keyId: string) {
+async function getKey(t: ReturnType<typeof initConvexTest>, keyId: Id<"apiKeys">) {
   return t.query(api.lib.getKey, { keyId, now: Date.now() });
 }
 
@@ -140,7 +149,7 @@ describe("sweepExpired", () => {
     await createKey(t, {
       tokenHash: "idle_only",
       maxIdleMs: ONE_HOUR,
-      idleExpiresAt: past,
+      lastUsedAt: past,
     });
 
     const result = await t.mutation(internal.sweep.sweepExpired, {});
@@ -170,7 +179,7 @@ describe("sweepIdleExpired", () => {
     const created = await createKey(t, {
       tokenHash: "idle_key",
       maxIdleMs: ONE_HOUR,
-      idleExpiresAt: past,
+      lastUsedAt: past,
     });
 
     const result = await t.mutation(internal.sweep.sweepIdleExpired, {});
@@ -193,7 +202,7 @@ describe("sweepIdleExpired", () => {
     await createKey(t, {
       tokenHash: "idle_no_resweep",
       maxIdleMs: ONE_HOUR,
-      idleExpiresAt: past,
+      lastUsedAt: past,
     });
 
     const first = await t.mutation(internal.sweep.sweepIdleExpired, {});
@@ -366,7 +375,7 @@ describe("sweep + cleanup lifecycle", () => {
     await createKey(t, {
       tokenHash: "mix_idle",
       maxIdleMs: ONE_HOUR,
-      idleExpiresAt: past,
+      lastUsedAt: past,
     });
 
     // Manually revoked key — already revoked, will be deleted by cleanup

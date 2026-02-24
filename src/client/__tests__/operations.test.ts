@@ -171,7 +171,7 @@ describe("touch", () => {
     expect(touched.ok).toBe(true);
     if (touched.ok) {
       expect(touched.keyId).toBe(created.keyId);
-      expect(touched.idleExpiresAt).toBeGreaterThan(touched.touchedAt);
+      expect(touched.touchedAt).toBeGreaterThan(0);
     }
   });
 });
