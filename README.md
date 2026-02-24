@@ -1,85 +1,42 @@
-# Convex Component Template
+# Convex API Keys
 
-This is a Convex component, ready to be published on npm.
-
-To create your own component:
-
-1. Write code in src/component for your component. Component-specific tables,
-   queries, mutations, and actions go here.
-1. Write code in src/client for the Class that interfaces with the component.
-   This is the bridge your users will access to get information into and out of
-   your component
-1. Write example usage in example/convex/example.ts.
-1. Delete the text in this readme until `---` and flesh out the README.
-1. Publish to npm with `npm run alpha` or `npm run release`.
-
-To develop your component run a dev process in the example project:
-
-```sh
-npm i
-npm run dev
-```
-
-`npm i` will do the install and an initial build. `npm run dev` will start a
-file watcher to re-build the component, as well as the example project frontend
-and backend, which does codegen and installs the component.
-
-Modify the schema and index files in src/component/ to define your component.
-
-Write a client for using this component in src/client/index.ts.
-
-If you won't be adding frontend code (e.g. React components) to this component
-you can delete "./react" references in package.json and "src/react/" directory.
-If you will be adding frontend code, add a peer dependency on React in
-package.json.
-
-### Component Directory structure
-
-```
-.
-├── README.md           documentation of your component
-├── package.json        component name, version number, other metadata
-├── package-lock.json   Components are like libraries, package-lock.json
-│                       is .gitignored and ignored by consumers.
-├── src
-│   ├── component/
-│   │   ├── _generated/ Files here are generated for the component.
-│   │   ├── convex.config.ts  Name your component here and use other components
-│   │   ├── lib.ts    Define functions here and in new files in this directory
-│   │   └── schema.ts   schema specific to this component
-│   ├── client/
-│   │   └── index.ts    Code that needs to run in the app that uses the
-│   │                   component. Generally the app interacts directly with
-│   │                   the component's exposed API (src/component/*).
-│   └── react/          Code intended to be used on the frontend goes here.
-│       │               Your are free to delete this if this component
-│       │               does not provide code.
-│       └── index.ts
-├── example/            example Convex app that uses this component
-│   └── convex/
-│       ├── _generated/       Files here are generated for the example app.
-│       ├── convex.config.ts  Imports and uses this component
-│       ├── myFunctions.ts    Functions that use the component
-│       └── schema.ts         Example app schema
-└── dist/               Publishing artifacts will be created here.
-```
-
----
-
-# Convex Api Keys
-
-[![npm version](https://badge.fury.io/js/@example%2Fapi-keys.svg)](https://badge.fury.io/js/@example%2Fapi-keys)
+[![npm version](https://badge.fury.io/js/@gaganref%2Fconvex-api-keys.svg)](https://badge.fury.io/js/@gaganref%2Fconvex-api-keys)
 
 <!-- START: Include on https://convex.dev/components -->
 
-- [ ] What is some compelling syntax as a hook?
-- [ ] Why should you use this component?
-- [ ] Links to docs / other resources?
+A [Convex](https://convex.dev) component for API key management. Create, validate,
+rotate, and revoke API keys with built-in expiry, idle timeout, permissions,
+metadata, and audit logging.
+
+```ts
+const result = await apiKeys.create(ctx, {
+  name: "Backend Server",
+  permissions: { scope: ["read", "write"] },
+});
+// result.token → "ak_7Kf9..."
+
+const check = await apiKeys.validate(ctx, { token: "ak_7Kf9..." });
+if (check.ok) {
+  // check.keyId, check.permissions, check.metadata
+}
+```
 
 Found a bug? Feature request?
 [File it here](https://github.com/gaganref/convex-api-keys/issues).
 
+## Pre-requisite: Convex
+
+You'll need an existing Convex project to use this component. Convex is a hosted
+backend platform, including a database, serverless functions, and a ton more
+you'd need to build a production app. If you haven't used Convex before, the
+[Convex tutorial](https://docs.convex.dev/get-started) is a great place to
+start.
+
 ## Installation
+
+```sh
+npm install @gaganref/convex-api-keys
+```
 
 Create a `convex.config.ts` file in your app's `convex/` folder and install the
 component by calling `use`:
@@ -95,52 +52,350 @@ app.use(apiKeys);
 export default app;
 ```
 
-## Usage
+## Quick Start
+
+Instantiate the client in a shared file:
 
 ```ts
-import { components } from "./_generated/api";
+// convex/apiKeys.ts
+import { ApiKeys } from "@gaganref/convex-api-keys";
+import { components } from "./_generated/api.js";
 
-export const addComment = mutation({
-  args: { text: v.string(), targetId: v.string() },
+export const apiKeys = new ApiKeys(components.apiKeys);
+```
+
+Use it in your mutations and queries:
+
+```ts
+// convex/myFunctions.ts
+import { mutation, query } from "./_generated/server.js";
+import { v } from "convex/values";
+import { apiKeys } from "./apiKeys.js";
+
+export const createKey = mutation({
+  args: { name: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.runMutation(components.apiKeys.lib.add, {
-      text: args.text,
-      targetId: args.targetId,
-      userId: await getAuthUserId(ctx),
-    });
+    return await apiKeys.create(ctx, { name: args.name });
+  },
+});
+
+export const validateKey = query({
+  args: { token: v.string() },
+  handler: async (ctx, args) => {
+    return await apiKeys.validate(ctx, { token: args.token });
   },
 });
 ```
 
-See more example usage in [example.ts](./example/convex/example.ts).
+## Typed Options
 
-### HTTP Routes
-
-You can register HTTP routes for the component to expose HTTP endpoints:
+The `ApiKeys` class accepts a generic parameter for type-safe namespaces,
+permissions, metadata, and required fields:
 
 ```ts
-import { httpRouter } from "convex/server";
-import { registerRoutes } from "@gaganref/convex-api-keys";
-import { components } from "./_generated/api";
-
-const http = httpRouter();
-
-registerRoutes(http, components.apiKeys, {
-  pathPrefix: "/comments",
+export const apiKeys = new ApiKeys<{
+  namespace: `${string}:${"production" | "testing"}`;
+  requireName: true;
+  metadata: { source: string };
+  permissions: { scope: Array<"read" | "write" | "admin"> };
+}>(components.apiKeys, {
+  permissionDefaults: {
+    scope: ["read"],
+  },
+  keyDefaults: {
+    prefix: "sk_",
+    ttlMs: 90 * 24 * 60 * 60 * 1000, // 90 days
+    idleTimeoutMs: 30 * 24 * 60 * 60 * 1000, // 30 days
+  },
+  logLevel: "debug",
 });
-
-export default http;
 ```
 
-This will expose a GET endpoint that returns the most recent comment as JSON.
-The endpoint requires a `targetId` query parameter. See
-[http.ts](./example/convex/http.ts) for a complete example.
+Type options:
 
-<!-- END: Include on https://convex.dev/components -->
+- `namespace` — any `string` subtype. When set, `namespace` becomes required in
+  `create` args.
+- `requireName` — set to `true` to require `name` in `create` args.
+- `metadata` — shape of the metadata object stored with each key.
+- `permissions` — shape of the permissions object. Values must be `string[]`
+  subtypes.
 
-Run the example:
+> **Note:** These are **compile-time type constraints only**, not runtime
+> validators. The underlying database stores flexible types:
+>
+> - `namespace` → `v.optional(v.string())`
+> - `permissions` → `v.optional(v.record(v.string(), v.array(v.string())))`
+> - `metadata` → `v.optional(v.record(v.string(), v.any()))`
+>
+> If you change your type options after keys have been created, existing data is
+> not automatically migrated — ensure your new types are backwards-compatible
+> with stored data.
+
+## Usage
+
+### Create
+
+```ts
+const key = await apiKeys.create(ctx, {
+  name: "My API Key",
+  namespace: "acme:production",
+  permissions: { scope: ["read", "write"] },
+  metadata: { source: "dashboard" },
+  ttlMs: 30 * 24 * 60 * 60 * 1000, // 30 days
+  idleTimeoutMs: 7 * 24 * 60 * 60 * 1000, // 7 days
+  prefix: "sk_live_", // override default prefix
+});
+// key.keyId    — unique identifier
+// key.token    — plaintext token (only available at creation time)
+// key.tokenPrefix — e.g. "sk_live_"
+// key.tokenLast4  — last 4 chars for display
+// key.createdAt   — timestamp
+// key.expiresAt   — timestamp or undefined
+```
+
+### Validate
+
+```ts
+const result = await apiKeys.validate(ctx, { token: "sk_live_7Kf9..." });
+if (result.ok) {
+  // result.keyId, result.namespace, result.permissions, result.metadata
+} else {
+  // result.reason: "not_found" | "revoked" | "expired" | "idle_timeout"
+}
+```
+
+Validation is a **read-only query** by design — it does not update the key's
+`lastUsedAt` timestamp. This keeps validation fast and side-effect-free. Call
+`touch` separately after you have fully authorized the request (e.g. after
+checking permissions) to keep idle timeout tracking accurate.
+
+### Touch
+
+Update the `lastUsedAt` timestamp to keep idle timeout tracking accurate. Call
+this after you have fully authorized the request — not immediately after
+`validate`, but after any additional permission checks or business logic:
+
+```ts
+const result = await apiKeys.validate(ctx, { token });
+if (!result.ok) {
+  throw new Error(`Invalid key: ${result.reason}`);
+}
+
+// Check application-level permissions, enforce business rules, etc.
+
+// Only touch after the request is fully authorized
+await apiKeys.touch(ctx, { keyId: result.keyId });
+```
+
+### Get Key
+
+Retrieve full details for a single key by ID:
+
+```ts
+const result = await apiKeys.getKey(ctx, { keyId: "..." });
+if (result.ok) {
+  // result.key — full key details including effectiveStatus
+} else {
+  // result.reason: "not_found"
+}
+```
+
+### List Keys
+
+Paginated listing with optional namespace and status filters:
+
+```ts
+const page = await apiKeys.listKeys(ctx, {
+  namespace: "acme:production",
+  status: "active", // or "revoked"
+  order: "desc",
+  paginationOpts: { numItems: 20, cursor: null },
+});
+// page.page — array of key summaries
+// page.isDone, page.continueCursor — pagination controls
+```
+
+### Update
+
+Update a key's name, metadata, expiry, or idle timeout:
+
+```ts
+const result = await apiKeys.update(ctx, {
+  keyId: "...",
+  name: "Renamed Key",
+  metadata: { source: "updated" },
+  expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+  maxIdleMs: 24 * 60 * 60 * 1000,
+});
+// result.ok — true on success
+// result.reason — "not_found" or "already_revoked" on failure
+```
+
+Pass `null` to `expiresAt` or `maxIdleMs` to remove them entirely.
+
+### Invalidate (Revoke)
+
+Revoke a single key:
+
+```ts
+const result = await apiKeys.invalidate(ctx, {
+  keyId: "...",
+  reason: "compromised",
+  metadata: { revokedBy: "admin" },
+});
+```
+
+### Invalidate All (Bulk Revoke)
+
+Revoke all active keys, optionally scoped by namespace and creation time:
+
+```ts
+const result = await apiKeys.invalidateAll(ctx, {
+  namespace: "acme:production",
+  before: Date.now(), // only keys created before this timestamp
+  reason: "security rotation",
+});
+// result.processed, result.revoked, result.pages
+```
+
+### Refresh (Rotate)
+
+Atomically revoke an existing key and create a new one with the same
+configuration:
+
+```ts
+const result = await apiKeys.refresh(ctx, {
+  keyId: "...",
+  prefix: "sk_live_",
+  reason: "scheduled rotation",
+});
+if (result.ok) {
+  // result.token — new plaintext token
+  // result.keyId — new key ID
+  // result.replacedKeyId — old key ID
+}
+```
+
+### List Events (Audit Log)
+
+Paginated event log scoped by namespace or by individual key:
+
+```ts
+// All events in a namespace
+const events = await apiKeys.listEvents(ctx, {
+  namespace: "acme:production",
+  paginationOpts: { numItems: 50, cursor: null },
+});
+
+// Events for a specific key
+const keyEvents = await apiKeys.listKeyEvents(ctx, {
+  keyId: "...",
+  paginationOpts: { numItems: 50, cursor: null },
+});
+```
+
+### Cleanup
+
+Hard-delete revoked keys and their audit events after a retention period. It is
+recommended to schedule this as a cron job:
+
+```ts
+// convex/cleanup.ts
+import { internalMutation } from "./_generated/server.js";
+import { apiKeys } from "./apiKeys.js";
+
+const RETENTION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+export const cleanupExpiredKeys = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    return await apiKeys.cleanupExpired(ctx, { retentionMs: RETENTION_MS });
+  },
+});
+```
+
+```ts
+// convex/crons.ts
+import { cronJobs } from "convex/server";
+import { internal } from "./_generated/api.js";
+
+const crons = cronJobs();
+crons.interval(
+  "cleanup expired api keys",
+  { hours: 24 },
+  internal.cleanup.cleanupExpiredKeys,
+);
+export default crons;
+```
+
+## Automatic Expiry (Sweep)
+
+The component includes built-in cron jobs that run every hour to:
+
+- **Sweep expired keys** — revokes active keys past their `expiresAt` timestamp.
+- **Sweep idle keys** — revokes active keys that haven't been touched within
+  their `maxIdleMs` window.
+
+Both sweeps use cursor-based pagination so they handle any number of keys without
+stalling. No additional setup is required — the crons are registered
+automatically when the component is installed.
+
+## Configuration Options
+
+Pass options when instantiating `ApiKeys`:
+
+```ts
+new ApiKeys(components.apiKeys, {
+  permissionDefaults: { scope: ["read"] },
+  keyDefaults: {
+    prefix: "ak_",          // token prefix (default: "ak_")
+    ttlMs: null,             // absolute expiry in ms (default: null)
+    idleTimeoutMs: null,     // idle timeout in ms (default: null)
+  },
+  logLevel: "warn",          // "debug" | "warn" | "error" | "none"
+});
+```
+
+### onInvalidate Hook
+
+Register a hook that fires whenever a key is invalidated, refreshed, or bulk
+invalidated. The hook receives a typed payload and runs as a scheduled internal
+mutation:
+
+```ts
+// convex/apiKeys.ts
+import { ApiKeys } from "@gaganref/convex-api-keys";
+import { components, internal } from "./_generated/api.js";
+
+export const apiKeys = new ApiKeys(components.apiKeys).withHooks({
+  onInvalidate: internal.hooks.onInvalidate,
+});
+```
+
+```ts
+// convex/hooks.ts
+import { internalMutation } from "./_generated/server.js";
+import { onInvalidateHookPayloadValidator } from "@gaganref/convex-api-keys";
+
+export const onInvalidate = internalMutation({
+  args: { payload: onInvalidateHookPayloadValidator },
+  handler: async (ctx, { payload }) => {
+    // payload.trigger: "invalidate" | "refresh" | "invalidateAll"
+    // payload.keyId, payload.reason, etc.
+    console.log("Key invalidated:", payload);
+  },
+});
+```
+
+## Example App
+
+See the [example/](./example) directory for a full API keys dashboard built with
+React, Tailwind CSS, and shadcn/ui that demonstrates all features of this
+component.
 
 ```sh
 npm i
 npm run dev
 ```
+
+<!-- END: Include on https://convex.dev/components -->
