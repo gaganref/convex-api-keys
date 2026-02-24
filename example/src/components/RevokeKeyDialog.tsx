@@ -12,11 +12,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/context/AuthContext";
 import type { Environment } from "@/lib/namespace";
-import type { MockApiKey } from "@/mock/types";
+import type { ApiKey } from "@/types";
 import { api } from "../../convex/_generated/api";
 
 type RevokeKeyDialogProps = {
-  apiKey: MockApiKey | null;
+  apiKey: ApiKey | null;
   namespace: Environment;
   onOpenChange: (open: boolean) => void;
 };

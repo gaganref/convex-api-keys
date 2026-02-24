@@ -3,7 +3,7 @@ export type Namespace = "production" | "testing";
 export type KeyStatus = "active" | "revoked" | "expired";
 export type AuditEventType = "created" | "revoked" | "rotated";
 
-export type MockApiKey = {
+export type ApiKey = {
   id: string;
   name: string;
   prefix: string;
@@ -11,7 +11,7 @@ export type MockApiKey = {
   namespace: Namespace;
   permissions: Permission[];
   createdAt: Date;
-  lastUsedAt: Date | null;
+  lastUsedAt: Date;
   expiresAt: Date | null;
   status: KeyStatus;
 };

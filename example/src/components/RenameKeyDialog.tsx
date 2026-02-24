@@ -11,11 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import type { Environment } from "@/lib/namespace";
-import type { MockApiKey } from "@/mock/types";
+import type { ApiKey } from "@/types";
 import { api } from "../../convex/_generated/api";
 
 type RenameKeyDialogProps = {
-  apiKey: MockApiKey | null;
+  apiKey: ApiKey | null;
   namespace: Environment;
   onOpenChange: (open: boolean) => void;
 };

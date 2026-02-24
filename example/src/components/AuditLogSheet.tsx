@@ -13,7 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
-import type { MockApiKey, AuditEventType, KeyStatus } from "@/mock/types";
+import type { ApiKey, AuditEventType, KeyStatus } from "@/types";
 import { PermissionBadge } from "@/components/PermissionBadge";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "../../convex/_generated/api";
@@ -74,7 +74,7 @@ const STATUS_BADGE: Record<KeyStatus, { label: string; className: string }> = {
 const PAGE_SIZE = 20;
 
 type AuditLogSheetProps = {
-  apiKey: MockApiKey | null;
+  apiKey: ApiKey | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };

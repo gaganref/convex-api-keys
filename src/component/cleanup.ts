@@ -1,7 +1,7 @@
 import { mutation } from "./_generated/server.js";
 import type { MutationCtx } from "./_generated/server.js";
 import { api } from "./_generated/api.js";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import type { Id } from "./_generated/dataModel.js";
 
 const BATCH_SIZE = 100;
@@ -36,9 +36,10 @@ export const cleanupExpired = mutation({
   }),
   handler: async (ctx, { retentionMs }) => {
     if (!Number.isFinite(retentionMs) || retentionMs <= 0) {
-      throw new Error(
-        `retentionMs must be a positive finite number, got ${retentionMs}`,
-      );
+      throw new ConvexError({
+        code: "invalid_argument",
+        message: `retentionMs must be a positive finite number, got ${retentionMs}`,
+      });
     }
 
     const cutoff = Date.now() - retentionMs;

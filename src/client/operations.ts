@@ -758,9 +758,14 @@ export class ApiKeys<
    * @param ctx Any context that can run a mutation.
    * @param args The key ID and fields to update. See {@link UpdateArgs}.
    * @returns `{ ok: true, keyId }` on success,
-   *   or `{ ok: false, reason: "not_found" }`.
+   *   or `{ ok: false, reason }` where reason is `"not_found"` or `"already_revoked"`.
    */
   async update(ctx: RunMutationCtx, args: UpdateArgs): Promise<UpdateResult> {
+    if (args.expiresAt !== undefined)
+      assertNullableNonNegativeInteger(args.expiresAt, "expiresAt");
+    if (args.maxIdleMs !== undefined)
+      assertNullableNonNegativeInteger(args.maxIdleMs, "maxIdleMs");
+
     try {
       const result = await ctx.runMutation(this.component.lib.update, {
         keyId: args.keyId,

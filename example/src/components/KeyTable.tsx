@@ -39,7 +39,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import type { Environment } from "@/lib/namespace";
-import type { MockApiKey, KeyStatus, Permission } from "@/mock/types";
+import type { ApiKey, KeyStatus, Permission } from "@/types";
 import { api } from "../../convex/_generated/api";
 
 const PAGE_SIZE = 20;
@@ -97,18 +97,12 @@ export function KeyTable({ namespace }: KeyTableProps) {
     { workspace, environment: namespace },
     { initialNumItems: PAGE_SIZE },
   );
-  const [auditKey, setAuditKey] = useState<MockApiKey | null>(null);
-  const [rotateCandidate, setRotateCandidate] = useState<MockApiKey | null>(
-    null,
-  );
-  const [revokeCandidate, setRevokeCandidate] = useState<MockApiKey | null>(
-    null,
-  );
-  const [renameCandidate, setRenameCandidate] = useState<MockApiKey | null>(
-    null,
-  );
+  const [auditKey, setAuditKey] = useState<ApiKey | null>(null);
+  const [rotateCandidate, setRotateCandidate] = useState<ApiKey | null>(null);
+  const [revokeCandidate, setRevokeCandidate] = useState<ApiKey | null>(null);
+  const [renameCandidate, setRenameCandidate] = useState<ApiKey | null>(null);
 
-  const keys: Array<MockApiKey> = results.map((row) => ({
+  const keys: Array<ApiKey> = results.map((row) => ({
     id: row.keyId,
     name: row.name ?? "Unnamed key",
     prefix: row.tokenPreview.split("...")[0] ?? "sk_live_",

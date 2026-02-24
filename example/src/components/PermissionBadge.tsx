@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { Permission } from "@/mock/types";
+import type { Permission } from "@/types";
 
 const CONFIG: Record<Permission, { label: string; className: string }> = {
   "events:write": {

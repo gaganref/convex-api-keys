@@ -300,11 +300,15 @@ describe("cleanup", () => {
     const t = initConvexTest();
     await expect(
       t.mutation(api.cleanup.cleanupExpired, { retentionMs: 0 }),
-    ).rejects.toThrow("retentionMs must be a positive finite number");
+    ).rejects.toMatchObject({
+      data: expect.stringContaining('"code":"invalid_argument"'),
+    });
 
     await expect(
       t.mutation(api.cleanup.cleanupExpired, { retentionMs: -1000 }),
-    ).rejects.toThrow("retentionMs must be a positive finite number");
+    ).rejects.toMatchObject({
+      data: expect.stringContaining('"code":"invalid_argument"'),
+    });
   });
 
   test("returns zero counts when no keys exist", async () => {

@@ -22,7 +22,7 @@ import { Switch } from "@/components/ui/switch";
 import { KeyTokenReveal } from "@/components/KeyTokenReveal";
 import { useAuth } from "@/context/AuthContext";
 import type { Environment } from "@/lib/namespace";
-import type { Permission } from "@/mock/types";
+import type { Permission } from "@/types";
 import { api } from "../../convex/_generated/api";
 
 const PERMISSIONS: { id: Permission; label: string; description: string }[] = [
