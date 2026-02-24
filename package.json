@@ -1,6 +1,6 @@
 {
   "name": "@gaganref/convex-api-keys",
-  "description": "A api keys component for Convex.",
+  "description": "A Convex component for API key management.",
   "repository": "github:gaganref/convex-api-keys",
   "homepage": "https://github.com/gaganref/convex-api-keys#readme",
   "bugs": {
@@ -10,7 +10,11 @@
   "license": "Apache-2.0",
   "keywords": [
     "convex",
-    "component"
+    "component",
+    "api-keys",
+    "api",
+    "authentication",
+    "token"
   ],
   "type": "module",
   "scripts": {
