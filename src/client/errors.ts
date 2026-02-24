@@ -5,8 +5,7 @@ export type ApiKeysClientErrorCode =
   | "TOKEN_REQUIRED"
   // Infrastructure
   | "RUNTIME_UNAVAILABLE"
-  | "OPERATION_FAILED"
-  | "UNKNOWN_ERROR";
+  | "OPERATION_FAILED";
 
 /**
  * Structured runtime error thrown by client-side helpers.

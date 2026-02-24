@@ -235,7 +235,10 @@ const listEventsResultValidator = v.object({
 
 const updateResultValidator = v.union(
   v.object({ ok: v.literal(true), keyId: v.id("apiKeys") }),
-  v.object({ ok: v.literal(false), reason: v.literal("not_found") }),
+  v.object({
+    ok: v.literal(false),
+    reason: v.union(v.literal("not_found"), v.literal("already_revoked")),
+  }),
 );
 
 // ---------------------------------------------------------------------------
@@ -673,6 +676,9 @@ export const update = mutation({
     const key = await ctx.db.get(args.keyId);
     if (key === null) {
       return { ok: false as const, reason: "not_found" as const };
+    }
+    if (key.status === "revoked") {
+      return { ok: false as const, reason: "already_revoked" as const };
     }
 
     const now = Date.now();

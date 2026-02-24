@@ -133,7 +133,7 @@ function normalizeLogLevel(
   return resolved;
 }
 
-function assertNullableNonNegativeInteger(value: number | null, path: string) {
+export function assertNullableNonNegativeInteger(value: number | null, path: string) {
   if (value === null) {
     return;
   }

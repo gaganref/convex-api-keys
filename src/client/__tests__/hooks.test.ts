@@ -144,6 +144,7 @@ describe("hooks", () => {
     expect(result.ok).toBe(true);
     expect(warnSpy).toHaveBeenCalledWith("[api-keys:system]", {
       message: "onInvalidate hook failed",
+      error: expect.any(String),
     });
     warnSpy.mockRestore();
 

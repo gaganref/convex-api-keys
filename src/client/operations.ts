@@ -2,6 +2,7 @@ import type { ComponentApi } from "../component/_generated/component.js";
 import { generateToken, sha256Base64Url, tokenLast4 } from "./crypto.js";
 import {
   type ApiKeysOptions,
+  assertNullableNonNegativeInteger,
   normalizeApiKeysOptions,
   type NormalizedApiKeysOptions,
 } from "./options.js";
@@ -60,16 +61,6 @@ function validatePrefix(prefix: string) {
   }
 }
 
-function validateNullableNonNegativeInteger(
-  value: number | null,
-  name: string,
-) {
-  if (value === null) return;
-  if (!Number.isInteger(value) || value < 0) {
-    throw optionsError(`${name} must be null or a non-negative integer`);
-  }
-}
-
 function resolveCreateConfig(
   args: {
     prefix?: string;
@@ -83,8 +74,8 @@ function resolveCreateConfig(
   const idleTimeoutMs = args.idleTimeoutMs ?? options.keyDefaults.idleTimeoutMs;
 
   if (args.prefix !== undefined) validatePrefix(prefix);
-  if (args.ttlMs !== undefined) validateNullableNonNegativeInteger(ttlMs, "ttlMs");
-  if (args.idleTimeoutMs !== undefined) validateNullableNonNegativeInteger(idleTimeoutMs, "idleTimeoutMs");
+  if (args.ttlMs !== undefined) assertNullableNonNegativeInteger(ttlMs, "ttlMs");
+  if (args.idleTimeoutMs !== undefined) assertNullableNonNegativeInteger(idleTimeoutMs, "idleTimeoutMs");
 
   return { prefix, ttlMs, idleTimeoutMs };
 }
@@ -515,7 +506,7 @@ export class ApiKeys<
       });
 
       if (!result.ok) {
-        logWithLevel(this.options.logLevel, "debug", "touch", {
+        logWithLevel(this.options.logLevel, "warn", "touch", {
           reason: result.reason,
         });
         return result;
@@ -856,9 +847,10 @@ export class ApiKeys<
 
     try {
       await ctx.runMutation(hook, { event: payload });
-    } catch {
+    } catch (error) {
       logWithLevel(this.options.logLevel, "warn", "system", {
         message: "onInvalidate hook failed",
+        error: error instanceof Error ? error.message : String(error),
       });
       // Swallowed — hook failure must not affect the operation.
     }

@@ -159,6 +159,78 @@ describe("component lib", () => {
     expect(result).toEqual({ ok: false, reason: "expired" });
   });
 
+  test("getKey returns key details with effective status", async () => {
+    const t = initConvexTest();
+    const now = Date.now();
+    const created = await t.mutation(api.lib.create, {
+      tokenHash: "hash_getkey",
+      tokenPrefix: "ak_",
+      tokenLast4: "5001",
+      namespace: "team_alpha",
+      name: "getkey test",
+      metadata: { env: "test" },
+      permissions: { beacon: ["events:write"] },
+      maxIdleMs: 60_000,
+    });
+
+    const result = await t.query(api.lib.getKey, {
+      keyId: created.keyId,
+      now,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.keyId).toBe(created.keyId);
+    expect(result.namespace).toBe("team_alpha");
+    expect(result.name).toBe("getkey test");
+    expect(result.tokenPrefix).toBe("ak_");
+    expect(result.tokenLast4).toBe("5001");
+    expect(result.metadata).toEqual({ env: "test" });
+    expect(result.permissions).toEqual({ beacon: ["events:write"] });
+    expect(result.maxIdleMs).toBe(60_000);
+    expect(result.status).toBe("active");
+    expect(result.effectiveStatus).toBe("active");
+  });
+
+  test("getKey returns not_found for missing key", async () => {
+    const t = initConvexTest();
+    // Create and delete a key to get a valid-shaped but missing ID
+    const created = await t.mutation(api.lib.create, {
+      tokenHash: "hash_getkey_missing",
+      tokenPrefix: "ak_",
+      tokenLast4: "5002",
+    });
+    await t.run(async (ctx) => ctx.db.delete(created.keyId));
+
+    const result = await t.query(api.lib.getKey, {
+      keyId: created.keyId,
+      now: Date.now(),
+    });
+
+    expect(result).toEqual({ ok: false, reason: "not_found" });
+  });
+
+  test("getKey returns effective expired status for time-expired key", async () => {
+    const t = initConvexTest();
+    const now = Date.now();
+    const created = await t.mutation(api.lib.create, {
+      tokenHash: "hash_getkey_expired",
+      tokenPrefix: "ak_",
+      tokenLast4: "5003",
+      expiresAt: now - 1,
+    });
+
+    const result = await t.query(api.lib.getKey, {
+      keyId: created.keyId,
+      now,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.status).toBe("active");
+    expect(result.effectiveStatus).toBe("expired");
+  });
+
   test("listKeys paginates and filters by namespace", async () => {
     const t = initConvexTest();
     await t.mutation(api.lib.create, {
@@ -225,6 +297,46 @@ describe("component lib", () => {
 
     expect(result.page[0]?.status).toBe("active");
     expect(result.page[0]?.effectiveStatus).toBe("expired");
+  });
+
+  test("listKeys filters by status", async () => {
+    const t = initConvexTest();
+    const now = Date.now();
+
+    const active = await t.mutation(api.lib.create, {
+      tokenHash: "hash_list_status_active",
+      tokenPrefix: "ak_",
+      tokenLast4: "2101",
+    });
+    const toRevoke = await t.mutation(api.lib.create, {
+      tokenHash: "hash_list_status_revoked",
+      tokenPrefix: "ak_",
+      tokenLast4: "2102",
+    });
+    await t.mutation(api.lib.invalidate, {
+      keyId: toRevoke.keyId,
+      now,
+    });
+
+    const revokedOnly = await t.query(api.lib.listKeys, {
+      status: "revoked",
+      now,
+      paginationOpts: { numItems: 10, cursor: null },
+    });
+
+    expect(revokedOnly.page).toHaveLength(1);
+    expect(revokedOnly.page[0]?.keyId).toBe(toRevoke.keyId);
+    expect(revokedOnly.page[0]?.status).toBe("revoked");
+
+    const activeOnly = await t.query(api.lib.listKeys, {
+      status: "active",
+      now,
+      paginationOpts: { numItems: 10, cursor: null },
+    });
+
+    expect(activeOnly.page).toHaveLength(1);
+    expect(activeOnly.page[0]?.keyId).toBe(active.keyId);
+    expect(activeOnly.page[0]?.status).toBe("active");
   });
 
   test("invalidate revokes key and writes event", async () => {
@@ -340,6 +452,56 @@ describe("component lib", () => {
     expect(refreshed).toEqual({ ok: false, reason: "revoked" });
   });
 
+  test("refresh rejects expired key", async () => {
+    const t = initConvexTest();
+    const now = Date.now();
+    const created = await t.mutation(api.lib.create, {
+      tokenHash: "hash_refresh_expired",
+      tokenPrefix: "ak_",
+      tokenLast4: "4003",
+      expiresAt: now - 1,
+    });
+
+    const result = await t.mutation(api.lib.refresh, {
+      keyId: created.keyId,
+      tokenHash: "hash_refresh_expired_new",
+      tokenPrefix: "ak_",
+      tokenLast4: "4004",
+      now,
+    });
+
+    expect(result).toEqual({ ok: false, reason: "expired" });
+  });
+
+  test("refresh preserves metadata and maxIdleMs", async () => {
+    const t = initConvexTest();
+    const now = Date.now();
+    const created = await t.mutation(api.lib.create, {
+      tokenHash: "hash_refresh_meta",
+      tokenPrefix: "ak_",
+      tokenLast4: "4005",
+      namespace: "team_alpha",
+      metadata: { env: "production", tier: "premium" },
+      maxIdleMs: 120_000,
+    });
+
+    const refreshed = await t.mutation(api.lib.refresh, {
+      keyId: created.keyId,
+      tokenHash: "hash_refresh_meta_new",
+      tokenPrefix: "ak_",
+      tokenLast4: "4006",
+      now: now + 5_000,
+    });
+
+    expect(refreshed.ok).toBe(true);
+    if (!refreshed.ok) return;
+
+    const newKey = await t.run(async (ctx) => ctx.db.get(refreshed.keyId));
+    expect(newKey?.metadata).toEqual({ env: "production", tier: "premium" });
+    expect(newKey?.maxIdleMs).toBe(120_000);
+    expect(newKey?.namespace).toBe("team_alpha");
+  });
+
   test("listKeyEvents returns lifecycle events for a key", async () => {
     const t = initConvexTest();
     const created = await t.mutation(api.lib.create, {
@@ -388,6 +550,94 @@ describe("component lib", () => {
     expect(result.page.every((event) => event.namespace === "team_alpha")).toBe(
       true,
     );
+  });
+
+  test("update rejects revoked key", async () => {
+    const t = initConvexTest();
+    const created = await t.mutation(api.lib.create, {
+      tokenHash: "hash_update_revoked",
+      tokenPrefix: "ak_",
+      tokenLast4: "6001",
+    });
+
+    await t.mutation(api.lib.invalidate, {
+      keyId: created.keyId,
+      now: Date.now(),
+    });
+
+    const result = await t.mutation(api.lib.update, {
+      keyId: created.keyId,
+      name: "should fail",
+      logLevel: "none",
+    });
+
+    expect(result).toEqual({ ok: false, reason: "already_revoked" });
+  });
+
+  test("update removes both expiresAt and maxIdleMs with null", async () => {
+    const t = initConvexTest();
+    const created = await t.mutation(api.lib.create, {
+      tokenHash: "hash_update_remove_both",
+      tokenPrefix: "ak_",
+      tokenLast4: "6002",
+      expiresAt: Date.now() + 86_400_000,
+      maxIdleMs: 60_000,
+    });
+
+    const result = await t.mutation(api.lib.update, {
+      keyId: created.keyId,
+      expiresAt: null,
+      maxIdleMs: null,
+      logLevel: "none",
+    });
+
+    expect(result.ok).toBe(true);
+
+    const key = await t.run(async (ctx) => ctx.db.get(created.keyId));
+    expect(key?.expiresAt).toBeUndefined();
+    expect(key?.maxIdleMs).toBeUndefined();
+  });
+
+  test("update accepts expiresAt in the past", async () => {
+    const t = initConvexTest();
+    const now = Date.now();
+    const created = await t.mutation(api.lib.create, {
+      tokenHash: "hash_update_past_expiry",
+      tokenPrefix: "ak_",
+      tokenLast4: "6003",
+    });
+
+    const result = await t.mutation(api.lib.update, {
+      keyId: created.keyId,
+      expiresAt: now - 1,
+      logLevel: "none",
+    });
+
+    expect(result.ok).toBe(true);
+
+    const key = await t.run(async (ctx) => ctx.db.get(created.keyId));
+    expect(key?.expiresAt).toBe(now - 1);
+  });
+
+  test("update accepts empty string name", async () => {
+    const t = initConvexTest();
+    const created = await t.mutation(api.lib.create, {
+      tokenHash: "hash_update_empty_name",
+      tokenPrefix: "ak_",
+      tokenLast4: "6004",
+      name: "original",
+    });
+
+    const result = await t.mutation(api.lib.update, {
+      keyId: created.keyId,
+      name: "",
+      logLevel: "none",
+    });
+
+    expect(result.ok).toBe(true);
+
+    const key = await t.run(async (ctx) => ctx.db.get(created.keyId));
+    expect(key?.name).toBe("");
   });
 
   test("invalidateAll revokes active keys in namespace", async () => {
