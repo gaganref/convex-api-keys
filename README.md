@@ -4,9 +4,9 @@
 
 <!-- START: Include on https://convex.dev/components -->
 
-A [Convex](https://convex.dev) component for API key management. Create, validate,
-rotate, and revoke API keys with built-in expiry, idle timeout, permissions,
-metadata, and audit logging.
+A [Convex](https://convex.dev) component for API key management. Create,
+validate, rotate, and revoke API keys with built-in expiry, idle timeout,
+permissions, metadata, and audit logging.
 
 ```ts
 const result = await apiKeys.create(ctx, {
@@ -336,8 +336,8 @@ The component includes built-in cron jobs that run every hour to:
 - **Sweep idle keys** — revokes active keys that haven't been touched within
   their `maxIdleMs` window.
 
-Both sweeps use cursor-based pagination so they handle any number of keys without
-stalling. No additional setup is required — the crons are registered
+Both sweeps use cursor-based pagination so they handle any number of keys
+without stalling. No additional setup is required — the crons are registered
 automatically when the component is installed.
 
 ## Configuration Options
@@ -348,11 +348,11 @@ Pass options when instantiating `ApiKeys`:
 new ApiKeys(components.apiKeys, {
   permissionDefaults: { scope: ["read"] },
   keyDefaults: {
-    prefix: "ak_",          // token prefix (default: "ak_")
-    ttlMs: null,             // absolute expiry in ms (default: null)
-    idleTimeoutMs: null,     // idle timeout in ms (default: null)
+    prefix: "ak_", // token prefix (default: "ak_")
+    ttlMs: null, // absolute expiry in ms (default: null)
+    idleTimeoutMs: null, // idle timeout in ms (default: null)
   },
-  logLevel: "warn",          // "debug" | "warn" | "error" | "none"
+  logLevel: "warn", // "debug" | "warn" | "error" | "none"
 });
 ```
 
