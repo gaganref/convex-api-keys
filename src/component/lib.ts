@@ -267,6 +267,25 @@ export const create = mutation({
       throwDuplicateTokenHashError();
     }
 
+    if (
+      typeof args.expiresAt === "number" &&
+      (!Number.isInteger(args.expiresAt) || args.expiresAt < 0)
+    ) {
+      throw new ConvexError({
+        code: "invalid_argument",
+        message: "expiresAt must be a non-negative integer",
+      });
+    }
+    if (
+      typeof args.maxIdleMs === "number" &&
+      (!Number.isInteger(args.maxIdleMs) || args.maxIdleMs < 0)
+    ) {
+      throw new ConvexError({
+        code: "invalid_argument",
+        message: "maxIdleMs must be a non-negative integer",
+      });
+    }
+
     const now = Date.now();
     const keyId = await ctx.db.insert("apiKeys", {
       tokenHash: args.tokenHash,

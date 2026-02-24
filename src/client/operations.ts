@@ -198,9 +198,9 @@ export class ApiKeys<
       >
     | undefined;
 
-  constructor(component: ComponentApi, options: ApiKeysOptions<TOptions>) {
+  constructor(component: ComponentApi, options?: ApiKeysOptions<TOptions>) {
     this.component = component;
-    this.options = normalizeApiKeysOptions(options);
+    this.options = normalizeApiKeysOptions(options ?? {});
   }
 
   /**

@@ -194,7 +194,8 @@ Retrieve full details for a single key by ID:
 ```ts
 const result = await apiKeys.getKey(ctx, { keyId: "..." });
 if (result.ok) {
-  // result.key — full key details including effectiveStatus
+  // result.keyId, result.name, result.namespace, result.permissions
+  // result.metadata, result.effectiveStatus, result.expiresAt, etc.
 } else {
   // result.reason: "not_found"
 }
@@ -359,8 +360,8 @@ new ApiKeys(components.apiKeys, {
 ### onInvalidate Hook
 
 Register a hook that fires whenever a key is invalidated, refreshed, or bulk
-invalidated. The hook receives a typed payload and runs as a scheduled internal
-mutation:
+invalidated. The hook is called inline via `ctx.runMutation` and failures are
+swallowed so they don't affect the main operation:
 
 ```ts
 // convex/apiKeys.ts
@@ -378,20 +379,37 @@ import { internalMutation } from "./_generated/server.js";
 import { onInvalidateHookPayloadValidator } from "@gaganref/convex-api-keys";
 
 export const onInvalidate = internalMutation({
-  args: { payload: onInvalidateHookPayloadValidator },
-  handler: async (ctx, { payload }) => {
-    // payload.trigger: "invalidate" | "refresh" | "invalidateAll"
-    // payload.keyId, payload.reason, etc.
-    console.log("Key invalidated:", payload);
+  args: { event: onInvalidateHookPayloadValidator },
+  handler: async (ctx, { event }) => {
+    // event.trigger: "invalidate" | "refresh" | "invalidateAll"
+    // event.keyId, event.reason, etc.
+    console.log("Key invalidated:", event);
   },
 });
 ```
+
+## Security Model
+
+- **Hash-only storage** — Plaintext tokens are never stored. Only a SHA-256 hash
+  is persisted; the plaintext is returned once at creation/rotation time.
+- **256-bit entropy** — Tokens are generated with 32 bytes of cryptographically
+  random data via the Web Crypto API.
+- **Prefix-based identification** — Token prefixes (e.g. `sk_live_`) allow
+  identifying key type without exposing the secret.
+- **Last-4 display** — Only the last 4 characters are stored for display in
+  dashboards and logs.
 
 ## Example App
 
 See the [example/](./example) directory for a full API keys dashboard built with
 React, Tailwind CSS, and shadcn/ui that demonstrates all features of this
 component.
+
+> **Security note:** The Quick Start examples above export public mutations and
+> queries for simplicity. In production, you should gate key management
+> operations behind an authentication layer (e.g. Convex Auth, Clerk, Workos)
+> and verify the caller has appropriate permissions before creating, revoking,
+> or listing keys.
 
 ```sh
 npm i
