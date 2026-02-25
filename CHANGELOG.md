@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1
+
+- Fix sweep pagination to work inside components.
+
 ## 0.1.0
 
 - Initial public release.

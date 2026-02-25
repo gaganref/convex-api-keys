@@ -203,7 +203,9 @@ describe("getKey", () => {
     expect(result.tokenPrefix).toBe(created.tokenPrefix);
     expect(result.status).toBe("active");
     expect(result.effectiveStatus).toBe("active");
-    expect(Math.abs(result.createdAt - created.createdAt)).toBeLessThanOrEqual(5);
+    expect(Math.abs(result.createdAt - created.createdAt)).toBeLessThanOrEqual(
+      5,
+    );
     expect(result.permissions?.api).toEqual(["read"]);
   });
 

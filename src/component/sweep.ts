@@ -3,6 +3,8 @@ import type { MutationCtx } from "./_generated/server.js";
 import { internal } from "./_generated/api.js";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel.js";
+import { paginator } from "convex-helpers/server/pagination";
+import schema from "./schema.js";
 
 const BATCH_SIZE = 100;
 
@@ -31,7 +33,7 @@ export const sweepExpired = internalMutation({
   handler: async (ctx, args) => {
     const now = Date.now();
 
-    const result = await ctx.db
+    const result = await paginator(ctx.db, schema)
       .query("apiKeys")
       .withIndex("by_status", (q) => q.eq("status", "active"))
       .paginate({ numItems: BATCH_SIZE, cursor: args.cursor ?? null });
@@ -72,7 +74,7 @@ export const sweepIdleExpired = internalMutation({
   handler: async (ctx, args) => {
     const now = Date.now();
 
-    const result = await ctx.db
+    const result = await paginator(ctx.db, schema)
       .query("apiKeys")
       .withIndex("by_status", (q) => q.eq("status", "active"))
       .paginate({ numItems: BATCH_SIZE, cursor: args.cursor ?? null });
