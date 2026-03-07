@@ -12,8 +12,11 @@ type ValidateQueryResult = FunctionReturnType<ComponentApi["lib"]["validate"]>;
 type RefreshMutationResult = FunctionReturnType<ComponentApi["lib"]["refresh"]>;
 type GetKeyQueryResult = FunctionReturnType<ComponentApi["lib"]["getKey"]>;
 type ListKeysQueryResult = FunctionReturnType<ComponentApi["lib"]["listKeys"]>;
-type CleanupExpiredMutationResult = FunctionReturnType<
-  ComponentApi["cleanup"]["cleanupExpired"]
+type CleanupKeysMutationResult = FunctionReturnType<
+  ComponentApi["cleanup"]["cleanupKeys"]
+>;
+type CleanupEventsMutationResult = FunctionReturnType<
+  ComponentApi["cleanup"]["cleanupEvents"]
 >;
 
 /**
@@ -283,17 +286,27 @@ export type UpdateArgs<
 
 export type UpdateResult = FunctionReturnType<ComponentApi["lib"]["update"]>;
 
-export type CleanupExpiredArgs = {
+export type CleanupKeysArgs = {
   /**
-   * How long to retain revoked keys before hard-deleting them and their
-   * audit events. Must be a positive finite number.
+   * How long to retain revoked keys before hard-deleting them.
    *
    * @default 30 days
    */
   retentionMs?: number;
 };
 
-export type CleanupExpiredResult = CleanupExpiredMutationResult;
+export type CleanupKeysResult = CleanupKeysMutationResult;
+
+export type CleanupEventsArgs = {
+  /**
+   * How long to retain audit events before hard-deleting them.
+   *
+   * @default 180 days
+   */
+  retentionMs?: number;
+};
+
+export type CleanupEventsResult = CleanupEventsMutationResult;
 
 export type RefreshArgs = {
   keyId: ApiKeyId;

@@ -306,20 +306,28 @@ const keyEvents = await apiKeys.listKeyEvents(ctx, {
 
 ### Cleanup
 
-Hard-delete revoked keys and their audit events after a retention period. It is
-recommended to schedule this as a cron job:
+Use separate cleanup jobs for revoked keys and audit events. It is recommended
+to schedule both as cron jobs with independent retention windows:
 
 ```ts
 // convex/cleanup.ts
 import { internalMutation } from "./_generated/server.js";
 import { apiKeys } from "./apiKeys.js";
 
-const RETENTION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+const KEY_RETENTION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+const EVENT_RETENTION_MS = 180 * 24 * 60 * 60 * 1000; // 180 days
 
-export const cleanupExpiredKeys = internalMutation({
+export const cleanupKeys = internalMutation({
   args: {},
   handler: async (ctx) => {
-    return await apiKeys.cleanupExpired(ctx, { retentionMs: RETENTION_MS });
+    return await apiKeys.cleanupKeys(ctx, { retentionMs: KEY_RETENTION_MS });
+  },
+});
+
+export const cleanupEvents = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    return await apiKeys.cleanupEvents(ctx, { retentionMs: EVENT_RETENTION_MS });
   },
 });
 ```
@@ -331,12 +339,20 @@ import { internal } from "./_generated/api.js";
 
 const crons = cronJobs();
 crons.interval(
-  "cleanup expired api keys",
+  "cleanup revoked api keys",
   { hours: 24 },
-  internal.cleanup.cleanupExpiredKeys,
+  internal.cleanup.cleanupKeys,
+);
+crons.interval(
+  "cleanup api key events",
+  { hours: 24 },
+  internal.cleanup.cleanupEvents,
 );
 export default crons;
 ```
+
+`cleanupKeys` deletes revoked keys only. `cleanupEvents` deletes audit events
+independently, so events can outlive deleted keys.
 
 ## Automatic Expiry (Sweep)
 

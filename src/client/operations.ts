@@ -14,8 +14,10 @@ import {
 import type { FunctionReference, FunctionVisibility } from "convex/server";
 import type {
   ApiKeysTypeOptions,
-  CleanupExpiredArgs,
-  CleanupExpiredResult,
+  CleanupEventsArgs,
+  CleanupEventsResult,
+  CleanupKeysArgs,
+  CleanupKeysResult,
   CreateArgs,
   CreateResult,
   GetKeyArgs,
@@ -837,32 +839,63 @@ export class ApiKeys<
    *
    * // convex/tasks.ts
    * export const cleanupApiKeys = internalMutation({
-   *   handler: (ctx) => apiKeys.cleanupExpired(ctx),
+   *   handler: (ctx) => apiKeys.cleanupKeys(ctx),
    * });
    * ```
    *
    * @param ctx Any context that can run a mutation.
    * @param args Optional retention period override. Defaults to 30 days.
-   *   See {@link CleanupExpiredArgs}.
+   *   See {@link CleanupKeysArgs}.
    * @returns `{ deleted, isDone }` — keys hard-deleted and whether all
    *   work was completed in this run.
    */
-  async cleanupExpired(
+  async cleanupKeys(
     ctx: RunMutationCtx,
-    args?: CleanupExpiredArgs,
-  ): Promise<CleanupExpiredResult> {
+    args?: CleanupKeysArgs,
+  ): Promise<CleanupKeysResult> {
     const retentionMs = args?.retentionMs ?? 30 * 24 * 60 * 60 * 1000;
     try {
-      return await ctx.runMutation(this.component.cleanup.cleanupExpired, {
+      return await ctx.runMutation(this.component.cleanup.cleanupKeys, {
         retentionMs,
       });
     } catch (error) {
-      logWithLevel(this.options.logLevel, "error", "cleanupExpired", {
+      logWithLevel(this.options.logLevel, "error", "cleanupKeys", {
         code: "OPERATION_FAILED",
-        message: "failed to cleanup expired api keys",
+        message: "failed to cleanup revoked api keys",
         cause: error,
       });
-      throw this.toThrownError(error, "failed to cleanup expired api keys");
+      throw this.toThrownError(error, "failed to cleanup revoked api keys");
+    }
+  }
+
+  /**
+   * Hard-delete audit events older than the retention period.
+   *
+   * This cleanup is independent from key cleanup. Events may outlive their
+   * parent keys to preserve audit history.
+   *
+   * @param ctx Any context that can run a mutation.
+   * @param args Optional retention period override. Defaults to 180 days.
+   *   See {@link CleanupEventsArgs}.
+   * @returns `{ deleted, isDone }` — events hard-deleted and whether all
+   *   work was completed in this run.
+   */
+  async cleanupEvents(
+    ctx: RunMutationCtx,
+    args?: CleanupEventsArgs,
+  ): Promise<CleanupEventsResult> {
+    const retentionMs = args?.retentionMs ?? 180 * 24 * 60 * 60 * 1000;
+    try {
+      return await ctx.runMutation(this.component.cleanup.cleanupEvents, {
+        retentionMs,
+      });
+    } catch (error) {
+      logWithLevel(this.options.logLevel, "error", "cleanupEvents", {
+        code: "OPERATION_FAILED",
+        message: "failed to cleanup api key events",
+        cause: error,
+      });
+      throw this.toThrownError(error, "failed to cleanup api key events");
     }
   }
 

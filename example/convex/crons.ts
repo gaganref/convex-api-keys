@@ -4,9 +4,15 @@ import { internal } from "./_generated/api.js";
 const crons = cronJobs();
 
 crons.interval(
-  "cleanup expired api keys",
+  "cleanup revoked api keys",
   { hours: 24 },
-  internal.cleanup.cleanupExpiredKeys,
+  internal.cleanup.cleanupKeys,
+);
+
+crons.interval(
+  "cleanup api key events",
+  { hours: 24 },
+  internal.cleanup.cleanupEvents,
 );
 
 export default crons;

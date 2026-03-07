@@ -292,20 +292,20 @@ describe("sweepIdleExpired", () => {
 });
 
 // ---------------------------------------------------------------------------
-// cleanup (public): hard-deletes revoked keys past retention
+// cleanupKeys / cleanupEvents (public)
 // ---------------------------------------------------------------------------
 
-describe("cleanup", () => {
+describe("cleanupKeys", () => {
   test("throws for non-positive retentionMs", async () => {
     const t = initConvexTest();
     await expect(
-      t.mutation(api.cleanup.cleanupExpired, { retentionMs: 0 }),
+      t.mutation(api.cleanup.cleanupKeys, { retentionMs: 0 }),
     ).rejects.toMatchObject({
       data: expect.stringContaining('"code":"invalid_argument"'),
     });
 
     await expect(
-      t.mutation(api.cleanup.cleanupExpired, { retentionMs: -1000 }),
+      t.mutation(api.cleanup.cleanupKeys, { retentionMs: -1000 }),
     ).rejects.toMatchObject({
       data: expect.stringContaining('"code":"invalid_argument"'),
     });
@@ -313,7 +313,7 @@ describe("cleanup", () => {
 
   test("returns zero counts when no keys exist", async () => {
     const t = initConvexTest();
-    const result = await t.mutation(api.cleanup.cleanupExpired, {
+    const result = await t.mutation(api.cleanup.cleanupKeys, {
       retentionMs: ONE_DAY,
     });
 
@@ -324,7 +324,7 @@ describe("cleanup", () => {
     const t = initConvexTest();
     await createKey(t, { tokenHash: "active_key" });
 
-    const result = await t.mutation(api.cleanup.cleanupExpired, {
+    const result = await t.mutation(api.cleanup.cleanupKeys, {
       retentionMs: ONE_HOUR,
     });
 
@@ -342,7 +342,7 @@ describe("cleanup", () => {
     const created = await createKey(t, { tokenHash: "revoked_key" });
     await revokeKey(t, created.keyId, past);
 
-    const result = await t.mutation(api.cleanup.cleanupExpired, {
+    const result = await t.mutation(api.cleanup.cleanupKeys, {
       retentionMs: ONE_HOUR,
     });
 
@@ -359,7 +359,7 @@ describe("cleanup", () => {
     const created = await createKey(t, { tokenHash: "recent_revoked" });
     await revokeKey(t, created.keyId);
 
-    const result = await t.mutation(api.cleanup.cleanupExpired, {
+    const result = await t.mutation(api.cleanup.cleanupKeys, {
       retentionMs: ONE_DAY * 30,
     });
 
@@ -370,7 +370,7 @@ describe("cleanup", () => {
     expect(keys.page).toHaveLength(1);
   });
 
-  test("deletes associated audit events alongside key", async () => {
+  test("preserves audit events when deleting keys", async () => {
     const t = initConvexTest();
     const past = Date.now() - ONE_DAY * 2;
 
@@ -383,7 +383,7 @@ describe("cleanup", () => {
     });
     expect(eventsBefore.page.length).toBeGreaterThan(0);
 
-    await t.mutation(api.cleanup.cleanupExpired, {
+    await t.mutation(api.cleanup.cleanupKeys, {
       retentionMs: ONE_HOUR,
     });
 
@@ -391,12 +391,100 @@ describe("cleanup", () => {
       keyId: created.keyId,
       paginationOpts: { numItems: 10, cursor: null },
     });
-    expect(eventsAfter.page).toHaveLength(0);
+    expect(eventsAfter.page.length).toBeGreaterThan(0);
   });
 });
 
 // ---------------------------------------------------------------------------
-// Full lifecycle: sweep then cleanup
+// cleanupEvents
+// ---------------------------------------------------------------------------
+
+describe("cleanupEvents", () => {
+  test("throws for non-positive retentionMs", async () => {
+    const t = initConvexTest();
+    await expect(
+      t.mutation(api.cleanup.cleanupEvents, { retentionMs: 0 }),
+    ).rejects.toMatchObject({
+      data: expect.stringContaining('"code":"invalid_argument"'),
+    });
+  });
+
+  test("returns zero counts when no events exist", async () => {
+    const t = initConvexTest();
+    const result = await t.mutation(api.cleanup.cleanupEvents, {
+      retentionMs: ONE_DAY,
+    });
+    expect(result).toEqual({ deleted: 0, isDone: true });
+  });
+
+  test("deletes old audit events without deleting keys", async () => {
+    vi.useFakeTimers();
+    const t = initConvexTest();
+    const oldNow = new Date("2026-01-01T00:00:00.000Z");
+    vi.setSystemTime(oldNow);
+
+    const created = await createKey(t, { tokenHash: "old_events_keep_key" });
+
+    vi.setSystemTime(new Date(oldNow.getTime() + ONE_DAY * 10));
+
+    const cleanup = await t.mutation(api.cleanup.cleanupEvents, {
+      retentionMs: ONE_DAY,
+    });
+    expect(cleanup.deleted).toBeGreaterThan(0);
+
+    const key = await getKey(t, created.keyId);
+    expect(key.ok).toBe(true);
+
+    const events = await t.query(api.lib.listKeyEvents, {
+      keyId: created.keyId,
+      paginationOpts: { numItems: 10, cursor: null },
+    });
+    expect(events.page).toHaveLength(0);
+
+    vi.useRealTimers();
+  });
+
+  test("deletes old audit events even after their key was deleted", async () => {
+    vi.useFakeTimers();
+    const t = initConvexTest();
+    const oldNow = new Date("2026-01-01T00:00:00.000Z");
+    vi.setSystemTime(oldNow);
+
+    const created = await createKey(t, { tokenHash: "old_orphan_events" });
+    await revokeKey(t, created.keyId, oldNow.getTime());
+
+    vi.setSystemTime(new Date(oldNow.getTime() + ONE_DAY * 10));
+
+    await t.mutation(api.cleanup.cleanupKeys, {
+      retentionMs: ONE_DAY,
+    });
+
+    const key = await getKey(t, created.keyId);
+    expect(key).toEqual({ ok: false, reason: "not_found" });
+
+    const eventsBefore = await t.query(api.lib.listKeyEvents, {
+      keyId: created.keyId,
+      paginationOpts: { numItems: 10, cursor: null },
+    });
+    expect(eventsBefore.page.length).toBeGreaterThan(0);
+
+    const cleanup = await t.mutation(api.cleanup.cleanupEvents, {
+      retentionMs: ONE_DAY,
+    });
+    expect(cleanup.deleted).toBeGreaterThan(0);
+
+    const eventsAfter = await t.query(api.lib.listKeyEvents, {
+      keyId: created.keyId,
+      paginationOpts: { numItems: 10, cursor: null },
+    });
+    expect(eventsAfter.page).toHaveLength(0);
+
+    vi.useRealTimers();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Full lifecycle: sweep then cleanupKeys
 // ---------------------------------------------------------------------------
 
 describe("sweep + cleanup lifecycle", () => {
@@ -420,7 +508,7 @@ describe("sweep + cleanup lifecycle", () => {
     }
 
     // Cleanup with large retention — key was just revoked, not past retention
-    const cleanup = await t.mutation(api.cleanup.cleanupExpired, {
+    const cleanup = await t.mutation(api.cleanup.cleanupKeys, {
       retentionMs: ONE_DAY * 365,
     });
     expect(cleanup.deleted).toBe(0);
@@ -459,7 +547,7 @@ describe("sweep + cleanup lifecycle", () => {
     expect(idleSweep.swept).toBe(1);
 
     // Cleanup — only the manually revoked key (revokedAt=past) is old enough
-    const cleanup = await t.mutation(api.cleanup.cleanupExpired, {
+    const cleanup = await t.mutation(api.cleanup.cleanupKeys, {
       retentionMs: ONE_HOUR,
     });
     expect(cleanup.deleted).toBe(1);
