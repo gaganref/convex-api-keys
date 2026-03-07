@@ -388,7 +388,8 @@ describe("refresh", () => {
     expect(newValidation.ok).toBe(true);
   });
 
-  test("inherits namespace, name, permissions, and expiresAt", async () => {
+  test("preserves absolute expiresAt instead of renewing ttl on refresh", async () => {
+    vi.useFakeTimers();
     const t = initConvexTest();
     const client = new ApiKeys<{ namespace: string }>(components.apiKeys, {});
     const { mutationCtx, queryCtx } = ctxFrom(t);
@@ -399,6 +400,8 @@ describe("refresh", () => {
       permissions: { api: ["read", "write"] },
       ttlMs: 60_000,
     });
+
+    vi.advanceTimersByTime(10_000);
 
     const refreshed = await client.refresh(mutationCtx, {
       keyId: created.keyId,

@@ -376,14 +376,17 @@ export class ApiKeys<
    * @param args The key ID to look up. See {@link GetKeyArgs}.
    * @returns `{ ok: true, ...keyData }` or `{ ok: false, reason: "not_found" }`.
    */
-  async getKey(ctx: RunQueryCtx, args: GetKeyArgs): Promise<GetKeyResult> {
+  async getKey(
+    ctx: RunQueryCtx,
+    args: GetKeyArgs,
+  ): Promise<GetKeyResult<TOptions>> {
     const now = Date.now();
 
     try {
-      return await ctx.runQuery(this.component.lib.getKey, {
+      return (await ctx.runQuery(this.component.lib.getKey, {
         keyId: args.keyId,
         now,
-      });
+      })) as GetKeyResult<TOptions>;
     } catch (error) {
       logWithLevel(this.options.logLevel, "error", "getKey", {
         code: "OPERATION_FAILED",
@@ -408,17 +411,17 @@ export class ApiKeys<
   async listKeys(
     ctx: RunQueryCtx,
     args: ListKeysArgs<TOptions>,
-  ): Promise<ListKeysResult> {
+  ): Promise<ListKeysResult<TOptions>> {
     const now = Date.now();
     const namespace = readNamespace(args);
     try {
-      return await ctx.runQuery(this.component.lib.listKeys, {
+      return (await ctx.runQuery(this.component.lib.listKeys, {
         paginationOpts: args.paginationOpts,
         namespace,
         status: args.status,
         now,
         order: args.order,
-      });
+      })) as ListKeysResult<TOptions>;
     } catch (error) {
       logWithLevel(this.options.logLevel, "error", "listKeys", {
         code: "OPERATION_FAILED",
@@ -675,7 +678,9 @@ export class ApiKeys<
    * Rotate an API key: revoke the current key and issue a replacement.
    *
    * The new key inherits the old key's namespace, name, permissions, metadata,
-   * expiry configuration, and idle timeout. A `"rotated"` event is recorded on
+   * current absolute `expiresAt` timestamp (if any), and idle timeout.
+   * Refresh does **not** renew the original TTL from "now" — it preserves the
+   * remaining lifetime already on the key. A `"rotated"` event is recorded on
    * the old key and a `"created"` event on the new key.
    *
    * The `onInvalidate` hook fires with `trigger: "refresh"` after success.
@@ -760,7 +765,10 @@ export class ApiKeys<
    * @returns `{ ok: true, keyId }` on success,
    *   or `{ ok: false, reason }` where reason is `"not_found"` or `"already_revoked"`.
    */
-  async update(ctx: RunMutationCtx, args: UpdateArgs): Promise<UpdateResult> {
+  async update(
+    ctx: RunMutationCtx,
+    args: UpdateArgs<TOptions>,
+  ): Promise<UpdateResult> {
     if (args.expiresAt !== undefined)
       assertNullableNonNegativeInteger(args.expiresAt, "expiresAt");
     if (args.maxIdleMs !== undefined)

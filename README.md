@@ -261,8 +261,9 @@ const result = await apiKeys.invalidateAll(ctx, {
 
 ### Refresh (Rotate)
 
-Atomically revoke an existing key and create a new one with the same
-configuration:
+Atomically revoke an existing key and create a new one that preserves the
+existing namespace, metadata, permissions, idle timeout, and current absolute
+`expiresAt` timestamp:
 
 ```ts
 const result = await apiKeys.refresh(ctx, {
@@ -276,6 +277,9 @@ if (result.ok) {
   // result.replacedKeyId — old key ID
 }
 ```
+
+If the old key was created with a TTL, refresh preserves the current
+`expiresAt` deadline. It does not renew the TTL from the time of rotation.
 
 ### List Events (Audit Log)
 

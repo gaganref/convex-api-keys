@@ -756,6 +756,9 @@ export const update = mutation({
 
 /**
  * Rotates a key by revoking the old key and creating a replacement.
+ *
+ * The replacement preserves the current absolute `expiresAt` timestamp rather
+ * than renewing the original TTL window from the time of rotation.
  */
 export const refresh = mutation({
   args: {

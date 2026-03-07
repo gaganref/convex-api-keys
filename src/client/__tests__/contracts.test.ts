@@ -104,6 +104,60 @@ test("client type contracts remain stable", () => {
     "free" | "pro" | undefined
   >();
 
+  // --- Typed read/update paths stay narrowed ---
+
+  const _fullyTypedClient = new ApiKeys<{
+    namespace: `live:${string}`;
+    metadata: { userId: string; plan: "free" | "pro" };
+    permissions: { beacon: Array<"events:write" | "reports:read"> };
+  }>(components.apiKeys, {});
+
+  type TypedGetKeyResult = Awaited<ReturnType<typeof _fullyTypedClient.getKey>>;
+  type TypedGetKeySuccess = Extract<TypedGetKeyResult, { ok: true }>;
+  expectTypeOf<TypedGetKeySuccess["namespace"]>().toEqualTypeOf<
+    `live:${string}` | undefined
+  >();
+  expectTypeOf<TypedGetKeySuccess["metadata"]>().toEqualTypeOf<
+    { userId: string; plan: "free" | "pro" } | undefined
+  >();
+  expectTypeOf<TypedGetKeySuccess["permissions"]>().toEqualTypeOf<
+    { beacon: Array<"events:write" | "reports:read"> } | undefined
+  >();
+
+  type TypedListKeysResult = Awaited<
+    ReturnType<typeof _fullyTypedClient.listKeys>
+  >;
+  expectTypeOf<TypedListKeysResult["page"][number]["namespace"]>().toEqualTypeOf<
+    `live:${string}` | undefined
+  >();
+  expectTypeOf<TypedListKeysResult["page"][number]["metadata"]>().toEqualTypeOf<
+    { userId: string; plan: "free" | "pro" } | undefined
+  >();
+  expectTypeOf<
+    TypedListKeysResult["page"][number]["permissions"]
+  >().toEqualTypeOf<
+    { beacon: Array<"events:write" | "reports:read"> } | undefined
+  >();
+
+  type TypedUpdateArgs = Parameters<typeof _fullyTypedClient.update>[1];
+  const validUpdateArgs: TypedUpdateArgs = {
+    keyId: "key_123" as never,
+    metadata: { userId: "user_123", plan: "pro" },
+  };
+  expectTypeOf(validUpdateArgs.metadata).toEqualTypeOf<
+    { userId: string; plan: "free" | "pro" } | undefined
+  >();
+
+  const invalidUpdateMetadata: TypedUpdateArgs = {
+    keyId: "key_123" as never,
+    metadata: {
+      userId: "user_123",
+      // @ts-expect-error invalid metadata variant should be rejected.
+      plan: "enterprise",
+    },
+  };
+  void invalidUpdateMetadata;
+
   // withHooks is available for attaching lifecycle hooks
   expectTypeOf(_baseClient).toHaveProperty("withHooks");
 });

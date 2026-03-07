@@ -393,7 +393,7 @@ describe("component lib", () => {
     expect(second).toEqual({ ok: false, reason: "revoked" });
   });
 
-  test("refresh rotates active key and links records", async () => {
+  test("refresh rotates active key, links records, and preserves absolute expiresAt", async () => {
     const t = initConvexTest();
     const now = Date.now();
     const created = await t.mutation(api.lib.create, {
@@ -403,6 +403,7 @@ describe("component lib", () => {
       namespace: "team_alpha",
       name: "rotatable",
       permissions: { beacon: ["events:write"] },
+      expiresAt: now + 60_000,
       maxIdleMs: 60_000,
     });
 
@@ -424,6 +425,8 @@ describe("component lib", () => {
     expect(oldKey?.status).toBe("revoked");
     expect(newKey?.replaces).toBe(created.keyId);
     expect(newKey?.status).toBe("active");
+    expect(newKey?.expiresAt).toBe(now + 60_000);
+    expect(refreshed.expiresAt).toBe(now + 60_000);
   });
 
   test("refresh returns revoked for already revoked key", async () => {

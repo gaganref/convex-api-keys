@@ -11,6 +11,7 @@ type CreateMutationResult = FunctionReturnType<ComponentApi["lib"]["create"]>;
 type ValidateQueryResult = FunctionReturnType<ComponentApi["lib"]["validate"]>;
 type RefreshMutationResult = FunctionReturnType<ComponentApi["lib"]["refresh"]>;
 type GetKeyQueryResult = FunctionReturnType<ComponentApi["lib"]["getKey"]>;
+type ListKeysQueryResult = FunctionReturnType<ComponentApi["lib"]["listKeys"]>;
 type CleanupExpiredMutationResult = FunctionReturnType<
   ComponentApi["cleanup"]["cleanupExpired"]
 >;
@@ -90,6 +91,21 @@ type PermissionsOutput<TOptions extends ApiKeysTypeOptions> = TOptions extends {
   ? P | undefined
   : Record<string, string[]> | undefined;
 
+type MetadataInput<TOptions extends ApiKeysTypeOptions> = TOptions extends {
+  metadata: infer M extends Record<string, unknown>;
+}
+  ? M
+  : ApiKeyMetadata;
+
+type TypedKeyRecordFields<
+  TBase,
+  TOptions extends ApiKeysTypeOptions = Record<never, never>,
+> = Omit<TBase, "namespace" | "permissions" | "metadata"> & {
+  namespace: NamespaceOutput<TOptions>;
+  permissions: PermissionsOutput<TOptions>;
+  metadata: MetadataOutput<TOptions>;
+};
+
 // --- Public types ---
 
 export type ApiKeyId = CreateMutationResult["keyId"];
@@ -106,11 +122,7 @@ export type CreateArgs<
 > = NamespaceArg<TOptions> &
   NameArg<TOptions> &
   PermissionsInputArg<TOptions> & {
-    metadata?: TOptions extends {
-      metadata: infer M extends Record<string, unknown>;
-    }
-      ? M
-      : ApiKeyMetadata;
+    metadata?: MetadataInput<TOptions>;
     prefix?: string;
     ttlMs?: number | null;
     idleTimeoutMs?: number | null;
@@ -148,10 +160,6 @@ export type ListKeysArgs<
   order?: "asc" | "desc";
 } & NamespaceFilterArg<TOptions>;
 
-export type ListKeysResult = FunctionReturnType<
-  ComponentApi["lib"]["listKeys"]
->;
-
 export type ListEventsArgs<
   TOptions extends ApiKeysTypeOptions = Record<never, never>,
 > = {
@@ -177,7 +185,12 @@ export type GetKeyArgs = {
   keyId: ApiKeyId;
 };
 
-export type GetKeyResult = GetKeyQueryResult;
+type GetKeySuccessBase = Extract<GetKeyQueryResult, { ok: true }>;
+type GetKeyFailure = Extract<GetKeyQueryResult, { ok: false }>;
+
+export type GetKeyResult<
+  TOptions extends ApiKeysTypeOptions = Record<never, never>,
+> = TypedKeyRecordFields<GetKeySuccessBase, TOptions> | GetKeyFailure;
 
 export type InvalidateArgs = {
   keyId: ApiKeyId;
@@ -240,10 +253,12 @@ export type OnInvalidateHookPayload = Infer<
   typeof onInvalidateHookPayloadValidator
 >;
 
-export type UpdateArgs = {
+export type UpdateArgs<
+  TOptions extends ApiKeysTypeOptions = Record<never, never>,
+> = {
   keyId: ApiKeyId;
   name?: string;
-  metadata?: ApiKeyMetadata;
+  metadata?: MetadataInput<TOptions>;
   /** Pass `null` to remove the expiry entirely. */
   expiresAt?: number | null;
   /** Pass `null` to remove the idle timeout entirely. */
@@ -274,6 +289,7 @@ export type RefreshArgs = {
 
 type RefreshMutationSuccess = Extract<RefreshMutationResult, { ok: true }>;
 type RefreshMutationFailure = Extract<RefreshMutationResult, { ok: false }>;
+type ListKeysItemBase = ListKeysQueryResult["page"][number];
 
 export type RefreshResult =
   | (RefreshMutationSuccess & {
@@ -289,12 +305,14 @@ type ValidateFailure = Extract<ValidateQueryResult, { ok: false }>;
 export type ValidateResult<
   TOptions extends ApiKeysTypeOptions = Record<never, never>,
 > =
-  | (Omit<ValidateSuccessBase, "permissions" | "namespace" | "metadata"> & {
-      namespace: NamespaceOutput<TOptions>;
-      permissions: PermissionsOutput<TOptions>;
-      metadata: MetadataOutput<TOptions>;
-    })
+  | TypedKeyRecordFields<ValidateSuccessBase, TOptions>
   | ValidateFailure;
+
+export type ListKeysResult<
+  TOptions extends ApiKeysTypeOptions = Record<never, never>,
+> = Omit<ListKeysQueryResult, "page"> & {
+  page: Array<TypedKeyRecordFields<ListKeysItemBase, TOptions>>;
+};
 
 export type RunMutationCtx = {
   runMutation: <
