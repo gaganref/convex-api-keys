@@ -38,6 +38,24 @@ describe("create", () => {
     expect(result.token.length).toBeGreaterThan(20);
   });
 
+  test("respects configured keyLengthBytes", async () => {
+    const t = initConvexTest();
+    const client = new ApiKeys(components.apiKeys, {
+      keyDefaults: {
+        keyLengthBytes: 16,
+      },
+    });
+    const { mutationCtx } = ctxFrom(t);
+
+    const result = await client.create(mutationCtx, {
+      name: "shorter entropy key",
+    });
+
+    expect(result.token).toMatch(/^ak_/);
+    expect(result.token.length).toBe(25);
+    expect(result.tokenLast4).toBe(result.token.slice(-4));
+  });
+
   test("applies permissionDefaults when create args omit permissions", async () => {
     const t = initConvexTest();
     const client = new ApiKeys<{

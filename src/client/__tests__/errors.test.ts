@@ -104,6 +104,13 @@ describe("option normalization", () => {
     });
   });
 
+  test("normalizes keyLengthBytes option", () => {
+    const normalized = normalizeApiKeysOptions({
+      keyDefaults: { keyLengthBytes: 24 },
+    });
+    expect(normalized.keyDefaults.keyLengthBytes).toBe(24);
+  });
+
   test("throws for empty prefix", () => {
     expect(() =>
       normalizeApiKeysOptions({ keyDefaults: { prefix: "" } }),
@@ -114,6 +121,18 @@ describe("option normalization", () => {
     expect(() =>
       normalizeApiKeysOptions({ keyDefaults: { prefix: "a".repeat(33) } }),
     ).toThrow(/max allowed length/);
+  });
+
+  test("throws for keyLengthBytes below minimum", () => {
+    expect(() =>
+      normalizeApiKeysOptions({ keyDefaults: { keyLengthBytes: 15 } }),
+    ).toThrow(/keyLengthBytes.*>= 16/);
+  });
+
+  test("throws for non-integer keyLengthBytes", () => {
+    expect(() =>
+      normalizeApiKeysOptions({ keyDefaults: { keyLengthBytes: 16.5 } }),
+    ).toThrow(/keyLengthBytes.*>= 16/);
   });
 
   test("throws typed INVALID_OPTIONS for bad initialization", () => {

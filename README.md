@@ -104,6 +104,7 @@ export const apiKeys = new ApiKeys<{
   },
   keyDefaults: {
     prefix: "sk_",
+    keyLengthBytes: 32, // token entropy bytes
     ttlMs: 90 * 24 * 60 * 60 * 1000, // 90 days
     idleTimeoutMs: 30 * 24 * 60 * 60 * 1000, // 30 days
   },
@@ -354,6 +355,7 @@ new ApiKeys(components.apiKeys, {
   permissionDefaults: { scope: ["read"] },
   keyDefaults: {
     prefix: "ak_", // token prefix (default: "ak_")
+    keyLengthBytes: 32, // token entropy bytes, integer >= 16 (default: 32)
     ttlMs: null, // absolute expiry in ms (default: null)
     idleTimeoutMs: null, // idle timeout in ms (default: null)
   },

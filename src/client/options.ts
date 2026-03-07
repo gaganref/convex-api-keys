@@ -32,6 +32,14 @@ export type ApiKeysOptions<
      */
     prefix?: string;
     /**
+     * Random entropy length in bytes used when generating tokens.
+     *
+     * Must be an integer >= 16.
+     *
+     * @default 32
+     */
+    keyLengthBytes?: number;
+    /**
      * Default absolute expiration in milliseconds.
      *
      * Set `null` for no expiration.
@@ -94,7 +102,8 @@ export function normalizeApiKeysOptions(
 ): NormalizedApiKeysOptions {
   const keyDefaults = {
     prefix: options.keyDefaults?.prefix ?? KEY_DEFAULTS.prefix,
-    keyLengthBytes: KEY_DEFAULTS.keyLengthBytes,
+    keyLengthBytes:
+      options.keyDefaults?.keyLengthBytes ?? KEY_DEFAULTS.keyLengthBytes,
     ttlMs: options.keyDefaults?.ttlMs ?? KEY_DEFAULTS.ttlMs,
     idleTimeoutMs:
       options.keyDefaults?.idleTimeoutMs ?? KEY_DEFAULTS.idleTimeoutMs,
@@ -106,6 +115,7 @@ export function normalizeApiKeysOptions(
   if (keyDefaults.prefix.length === 0) {
     throw optionsError("keyDefaults.prefix must not be empty");
   }
+  assertMinInteger(keyDefaults.keyLengthBytes, "keyDefaults.keyLengthBytes", 16);
   assertNullableNonNegativeInteger(keyDefaults.ttlMs, "keyDefaults.ttlMs");
   assertNullableNonNegativeInteger(
     keyDefaults.idleTimeoutMs,
@@ -142,5 +152,11 @@ export function assertNullableNonNegativeInteger(
   }
   if (!Number.isInteger(value) || value < 0) {
     throw optionsError(`${path} must be null or a non-negative integer`);
+  }
+}
+
+export function assertMinInteger(value: number, path: string, min: number) {
+  if (!Number.isInteger(value) || value < min) {
+    throw optionsError(`${path} must be an integer >= ${min}`);
   }
 }
