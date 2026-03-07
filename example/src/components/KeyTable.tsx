@@ -66,7 +66,7 @@ const STATUS_CONFIG: Record<
     labelClass: "text-yellow-600 dark:text-yellow-400",
   },
   idle_timeout: {
-    label: "Idle timeout",
+    label: "Inactive",
     dotClass: "bg-amber-500",
     labelClass: "text-amber-600 dark:text-amber-400",
   },
@@ -81,7 +81,7 @@ const FILTER_OPTIONS = [
   { value: "all", label: "All keys" },
   { value: "active", label: "Active" },
   { value: "expired", label: "Expired" },
-  { value: "idle_timeout", label: "Idle timeout" },
+  { value: "idle_timeout", label: "Inactive" },
   { value: "revoked", label: "Revoked" },
 ] as const;
 

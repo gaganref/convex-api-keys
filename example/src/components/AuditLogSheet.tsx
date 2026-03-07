@@ -66,7 +66,7 @@ const STATUS_BADGE: Record<KeyStatus, { label: string; className: string }> = {
       "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20",
   },
   idle_timeout: {
-    label: "Idle timeout",
+    label: "Inactive",
     className:
       "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
   },
