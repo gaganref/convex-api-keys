@@ -209,13 +209,17 @@ Paginated listing with optional namespace and status filters:
 ```ts
 const page = await apiKeys.listKeys(ctx, {
   namespace: "acme:production",
-  status: "active", // or "revoked"
+  effectiveStatus: "expired", // or "active" | "idle_timeout" | "revoked"
   order: "desc",
   paginationOpts: { numItems: 20, cursor: null },
 });
 // page.page — array of key summaries
 // page.isDone, page.continueCursor — pagination controls
 ```
+
+`status` filters by stored database state (`"active"` or `"revoked"`). Use
+`effectiveStatus` to filter by current computed state. These options are
+mutually exclusive.
 
 ### Update
 

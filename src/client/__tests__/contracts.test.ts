@@ -34,6 +34,21 @@ test("client type contracts remain stable", () => {
     string | undefined
   >();
 
+  const validEffectiveStatusFilter: NamespacedListKeysArgs = {
+    paginationOpts: { numItems: 10, cursor: null },
+    namespace: "production",
+    effectiveStatus: "expired",
+  };
+  void validEffectiveStatusFilter;
+
+  const invalidCombinedStatusFilter: NamespacedListKeysArgs = {
+    paginationOpts: { numItems: 10, cursor: null },
+    status: "active",
+    // @ts-expect-error status and effectiveStatus are mutually exclusive.
+    effectiveStatus: "expired",
+  };
+  void invalidCombinedStatusFilter;
+
   // --- Template literal namespace ---
 
   const _templateClient = new ApiKeys<{

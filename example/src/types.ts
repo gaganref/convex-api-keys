@@ -1,6 +1,6 @@
 export type Permission = "events:write" | "reports:read" | "admin";
 export type Namespace = "production" | "testing";
-export type KeyStatus = "active" | "revoked" | "expired";
+export type KeyStatus = "active" | "revoked" | "expired" | "idle_timeout";
 export type AuditEventType = "created" | "revoked" | "rotated";
 
 export type ApiKey = {

@@ -152,13 +152,29 @@ export type PaginationOptions = {
   cursor: string | null;
 };
 
+export type ApiKeyEffectiveStatus =
+  | "active"
+  | "revoked"
+  | "expired"
+  | "idle_timeout";
+
+type ListKeysFilterArgs =
+  | {
+      status?: "active" | "revoked";
+      effectiveStatus?: never;
+    }
+  | {
+      status?: never;
+      effectiveStatus?: ApiKeyEffectiveStatus;
+    };
+
 export type ListKeysArgs<
   TOptions extends ApiKeysTypeOptions = Record<never, never>,
 > = {
   paginationOpts: PaginationOptions;
-  status?: "active" | "revoked";
   order?: "asc" | "desc";
-} & NamespaceFilterArg<TOptions>;
+} & ListKeysFilterArgs &
+  NamespaceFilterArg<TOptions>;
 
 export type ListEventsArgs<
   TOptions extends ApiKeysTypeOptions = Record<never, never>,

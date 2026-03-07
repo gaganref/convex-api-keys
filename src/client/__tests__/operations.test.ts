@@ -659,6 +659,53 @@ describe("list operations", () => {
     expect(page.page[1].keyId).toBe(k2.keyId);
   });
 
+  test("listKeys filters by effectiveStatus", async () => {
+    vi.useFakeTimers();
+    const t = initConvexTest();
+    const client = new ApiKeys<{ namespace: string }>(components.apiKeys, {});
+    const { mutationCtx, queryCtx } = ctxFrom(t);
+
+    const active = await client.create(mutationCtx, {
+      namespace: "ns",
+      name: "active",
+    });
+    await client.create(mutationCtx, {
+      namespace: "ns",
+      name: "expired",
+      ttlMs: 1_000,
+    });
+
+    vi.advanceTimersByTime(2_000);
+
+    const expiredOnly = await client.listKeys(queryCtx, {
+      namespace: "ns",
+      effectiveStatus: "expired",
+      paginationOpts: { numItems: 10, cursor: null },
+    });
+
+    expect(expiredOnly.page).toHaveLength(1);
+    expect(expiredOnly.page[0]?.effectiveStatus).toBe("expired");
+    expect(expiredOnly.page[0]?.keyId).not.toBe(active.keyId);
+  });
+
+  test("listKeys rejects combining status and effectiveStatus", async () => {
+    const t = initConvexTest();
+    const client = new ApiKeys<{ namespace: string }>(components.apiKeys, {});
+    const { queryCtx } = ctxFrom(t);
+
+    await expect(
+      client.listKeys(queryCtx, {
+        namespace: "ns",
+        status: "active",
+        effectiveStatus: "expired",
+        paginationOpts: { numItems: 10, cursor: null },
+      } as never),
+    ).rejects.toMatchObject({
+      name: "ApiKeysClientError",
+      code: "INVALID_OPTIONS",
+    });
+  });
+
   test("listEvents with order asc returns oldest event first", async () => {
     vi.useFakeTimers();
     const t = initConvexTest();

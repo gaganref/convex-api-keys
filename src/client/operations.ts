@@ -132,6 +132,18 @@ function readNamespace(args: object): string | undefined {
     : undefined;
 }
 
+function assertExclusiveListKeyFilters(args: {
+  status?: "active" | "revoked";
+  effectiveStatus?: "active" | "revoked" | "expired" | "idle_timeout";
+}) {
+  if (args.status !== undefined && args.effectiveStatus !== undefined) {
+    throw new ApiKeysClientError(
+      "INVALID_OPTIONS",
+      "api-keys listKeys: status and effectiveStatus are mutually exclusive",
+    );
+  }
+}
+
 function shouldLog(
   configured: "debug" | "warn" | "error" | "none",
   level: "debug" | "warn" | "error",
@@ -401,8 +413,9 @@ export class ApiKeys<
    * List API keys with cursor-based pagination.
    *
    * Results include the computed `effectiveStatus` for each key. Supports
-   * optional filtering by namespace and/or stored status (`"active"` or
-   * `"revoked"`), and ordering by creation time.
+   * optional filtering by namespace, stored `status`, or derived
+   * `effectiveStatus`, and ordering by creation time. `status` and
+   * `effectiveStatus` are mutually exclusive.
    *
    * @param ctx Any context that can run a query.
    * @param args Pagination options and optional filters. See {@link ListKeysArgs}.
@@ -414,11 +427,13 @@ export class ApiKeys<
   ): Promise<ListKeysResult<TOptions>> {
     const now = Date.now();
     const namespace = readNamespace(args);
+    assertExclusiveListKeyFilters(args);
     try {
       return (await ctx.runQuery(this.component.lib.listKeys, {
         paginationOpts: args.paginationOpts,
         namespace,
         status: args.status,
+        effectiveStatus: args.effectiveStatus,
         now,
         order: args.order,
       })) as ListKeysResult<TOptions>;

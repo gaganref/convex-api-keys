@@ -43,9 +43,20 @@ const listedKeyValidator = v.object({
   status: v.union(
     v.literal("active"),
     v.literal("expired"),
+    v.literal("idle_timeout"),
     v.literal("revoked"),
   ),
 });
+
+const keyFilterValidator = v.optional(
+  v.union(
+    v.literal("all"),
+    v.literal("active"),
+    v.literal("expired"),
+    v.literal("idle_timeout"),
+    v.literal("revoked"),
+  ),
+);
 
 const listKeysResultValidator = v.object({
   page: v.array(listedKeyValidator),
@@ -379,14 +390,18 @@ export const listKeys = query({
   args: {
     workspace: v.string(),
     environment: environmentValidator,
+    filter: keyFilterValidator,
     paginationOpts: paginationOptsValidator,
   },
   returns: listKeysResultValidator,
   handler: async (ctx, args) => {
     const namespace = toNamespace(args.workspace, args.environment);
-    const result: Awaited<ReturnType<typeof apiKeys.listKeys>> =
+    const result =
       await apiKeys.listKeys(ctx, {
         namespace,
+        ...(args.filter && args.filter !== "all"
+          ? { effectiveStatus: args.filter }
+          : {}),
         paginationOpts: args.paginationOpts,
       });
 
@@ -402,10 +417,7 @@ export const listKeys = query({
         createdAt: row.createdAt,
         lastUsedAt: row.lastUsedAt,
         expiresAt: row.expiresAt,
-        status:
-          row.effectiveStatus === "idle_timeout"
-            ? ("expired" as const)
-            : row.effectiveStatus,
+        status: row.effectiveStatus,
       })),
     };
   },

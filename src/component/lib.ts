@@ -33,6 +33,12 @@ type StatusFields = {
 } & IdleFields;
 
 type EffectiveStatus = "active" | "revoked" | "expired" | "idle_timeout";
+type EffectiveStatusCursor = {
+  sourceCursor: string | null;
+  bufferedKeyIds: Array<Id<"apiKeys">>;
+};
+
+const EFFECTIVE_STATUS_CURSOR_PREFIX = "effectiveStatus:";
 
 function effectiveStatus(key: StatusFields, now: number): EffectiveStatus {
   if (key.status === "revoked") return "revoked";
@@ -40,6 +46,96 @@ function effectiveStatus(key: StatusFields, now: number): EffectiveStatus {
   const idle = idleExpiresAt(key);
   if (idle !== undefined && now >= idle) return "idle_timeout";
   return "active";
+}
+
+function storedStatusForEffectiveStatus(
+  status: EffectiveStatus,
+): ApiKeyStatus {
+  return status === "revoked" ? "revoked" : "active";
+}
+
+function encodeEffectiveStatusCursor(state: EffectiveStatusCursor): string {
+  return `${EFFECTIVE_STATUS_CURSOR_PREFIX}${JSON.stringify(state)}`;
+}
+
+function decodeEffectiveStatusCursor(cursor: string | null): EffectiveStatusCursor {
+  if (cursor === null) {
+    return { sourceCursor: null, bufferedKeyIds: [] };
+  }
+  if (!cursor.startsWith(EFFECTIVE_STATUS_CURSOR_PREFIX)) {
+    throw new ConvexError({
+      code: "invalid_argument",
+      message: "invalid effectiveStatus cursor",
+    });
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(cursor.slice(EFFECTIVE_STATUS_CURSOR_PREFIX.length));
+  } catch {
+    throw new ConvexError({
+      code: "invalid_argument",
+      message: "invalid effectiveStatus cursor",
+    });
+  }
+
+  if (
+    typeof parsed !== "object" ||
+    parsed === null ||
+    !("sourceCursor" in parsed) ||
+    !("bufferedKeyIds" in parsed)
+  ) {
+    throw new ConvexError({
+      code: "invalid_argument",
+      message: "invalid effectiveStatus cursor",
+    });
+  }
+
+  const sourceCursor = (parsed as { sourceCursor?: unknown }).sourceCursor;
+  const bufferedKeyIds = (parsed as { bufferedKeyIds?: unknown }).bufferedKeyIds;
+
+  if (sourceCursor !== null && typeof sourceCursor !== "string") {
+    throw new ConvexError({
+      code: "invalid_argument",
+      message: "invalid effectiveStatus cursor",
+    });
+  }
+  if (
+    !Array.isArray(bufferedKeyIds) ||
+    bufferedKeyIds.some((id) => typeof id !== "string")
+  ) {
+    throw new ConvexError({
+      code: "invalid_argument",
+      message: "invalid effectiveStatus cursor",
+    });
+  }
+
+  return {
+    sourceCursor,
+    bufferedKeyIds: bufferedKeyIds as Array<Id<"apiKeys">>,
+  };
+}
+
+function mapKeyRow(key: Doc<"apiKeys">, now: number) {
+  return {
+    keyId: key._id,
+    namespace: key.namespace,
+    name: key.name,
+    tokenPrefix: key.tokenPrefix,
+    tokenLast4: key.tokenLast4,
+    permissions: key.permissions,
+    metadata: key.metadata,
+    status: key.status,
+    effectiveStatus: effectiveStatus(key, now),
+    createdAt: key._creationTime,
+    updatedAt: key.updatedAt,
+    lastUsedAt: key.lastUsedAt,
+    expiresAt: key.expiresAt,
+    maxIdleMs: key.maxIdleMs,
+    revokedAt: key.revokedAt,
+    revocationReason: key.revocationReason,
+    replaces: key.replaces,
+  };
 }
 
 function mapEventRow(event: Doc<"apiKeyEvents">) {
@@ -404,6 +500,7 @@ export const listKeys = query({
     paginationOpts: paginationOptsValidator,
     namespace: v.optional(v.string()),
     status: v.optional(apiKeyStatusValidator),
+    effectiveStatus: v.optional(effectiveStatusValidator),
     now: v.number(),
     order: orderValidator,
   },
@@ -411,6 +508,85 @@ export const listKeys = query({
   handler: async (ctx, args) => {
     const pages = paginator(ctx.db, schema).query("apiKeys");
     const order = args.order ?? "desc";
+
+    if (args.status !== undefined && args.effectiveStatus !== undefined) {
+      throw new ConvexError({
+        code: "invalid_argument",
+        message: "status and effectiveStatus are mutually exclusive",
+      });
+    }
+
+    if (args.effectiveStatus !== undefined) {
+      const scanState = decodeEffectiveStatusCursor(args.paginationOpts.cursor);
+      const storedStatus = storedStatusForEffectiveStatus(args.effectiveStatus);
+      const scanBatchSize = Math.max(args.paginationOpts.numItems, 50);
+      const matchedKeys: Array<Doc<"apiKeys">> = [];
+      const bufferedKeys: Array<Doc<"apiKeys">> = [];
+
+      for (const keyId of scanState.bufferedKeyIds) {
+        const key = await ctx.db.get(keyId);
+        if (key !== null && effectiveStatus(key, args.now) === args.effectiveStatus) {
+          bufferedKeys.push(key);
+        }
+      }
+
+      while (
+        matchedKeys.length < args.paginationOpts.numItems &&
+        bufferedKeys.length > 0
+      ) {
+        const key = bufferedKeys.shift();
+        if (key !== undefined) {
+          matchedKeys.push(key);
+        }
+      }
+
+      let sourceCursor = scanState.sourceCursor;
+      let sourceDone = false;
+
+      while (matchedKeys.length < args.paginationOpts.numItems && !sourceDone) {
+        const result =
+          args.namespace !== undefined
+            ? await pages
+                .withIndex("by_namespace_and_status", (q) =>
+                  q.eq("namespace", args.namespace).eq("status", storedStatus),
+                )
+                .order(order)
+                .paginate({
+                  numItems: scanBatchSize,
+                  cursor: sourceCursor,
+                })
+            : await pages
+                .withIndex("by_status", (q) => q.eq("status", storedStatus))
+                .order(order)
+                .paginate({
+                  numItems: scanBatchSize,
+                  cursor: sourceCursor,
+                });
+
+        sourceCursor = result.continueCursor;
+        sourceDone = result.isDone;
+
+        for (const key of result.page) {
+          if (effectiveStatus(key, args.now) !== args.effectiveStatus) {
+            continue;
+          }
+          if (matchedKeys.length < args.paginationOpts.numItems) {
+            matchedKeys.push(key);
+          } else {
+            bufferedKeys.push(key);
+          }
+        }
+      }
+
+      return {
+        isDone: sourceDone && bufferedKeys.length === 0,
+        continueCursor: encodeEffectiveStatusCursor({
+          sourceCursor,
+          bufferedKeyIds: bufferedKeys.map((key) => key._id),
+        }),
+        page: matchedKeys.map((key) => mapKeyRow(key, args.now)),
+      };
+    }
 
     let result;
     if (args.namespace !== undefined) {
@@ -433,25 +609,7 @@ export const listKeys = query({
     return {
       isDone: result.isDone,
       continueCursor: result.continueCursor,
-      page: result.page.map((key) => ({
-        keyId: key._id,
-        namespace: key.namespace,
-        name: key.name,
-        tokenPrefix: key.tokenPrefix,
-        tokenLast4: key.tokenLast4,
-        permissions: key.permissions,
-        metadata: key.metadata,
-        status: key.status,
-        effectiveStatus: effectiveStatus(key, args.now),
-        createdAt: key._creationTime,
-        updatedAt: key.updatedAt,
-        lastUsedAt: key.lastUsedAt,
-        expiresAt: key.expiresAt,
-        maxIdleMs: key.maxIdleMs,
-        revokedAt: key.revokedAt,
-        revocationReason: key.revocationReason,
-        replaces: key.replaces,
-      })),
+      page: result.page.map((key) => mapKeyRow(key, args.now)),
     };
   },
 });

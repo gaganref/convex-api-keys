@@ -184,6 +184,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         "query",
         "internal",
         {
+          effectiveStatus?: "active" | "revoked" | "expired" | "idle_timeout";
           namespace?: string;
           now: number;
           order?: "asc" | "desc";

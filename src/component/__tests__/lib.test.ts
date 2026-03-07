@@ -339,6 +339,89 @@ describe("component lib", () => {
     expect(activeOnly.page[0]?.status).toBe("active");
   });
 
+  test("listKeys filters by effectiveStatus", async () => {
+    const t = initConvexTest();
+    const now = Date.now();
+
+    await t.mutation(api.lib.create, {
+      tokenHash: "hash_list_effective_active",
+      tokenPrefix: "ak_",
+      tokenLast4: "2201",
+      namespace: "team_alpha",
+    });
+    const expired = await t.mutation(api.lib.create, {
+      tokenHash: "hash_list_effective_expired",
+      tokenPrefix: "ak_",
+      tokenLast4: "2202",
+      namespace: "team_alpha",
+      expiresAt: now - 1,
+    });
+
+    const result = await t.query(api.lib.listKeys, {
+      namespace: "team_alpha",
+      effectiveStatus: "expired",
+      now,
+      paginationOpts: { numItems: 10, cursor: null },
+    });
+
+    expect(result.page).toHaveLength(1);
+    expect(result.page[0]?.keyId).toBe(expired.keyId);
+    expect(result.page[0]?.effectiveStatus).toBe("expired");
+  });
+
+  test("listKeys buffers overflow matches when effectiveStatus is paginated", async () => {
+    const t = initConvexTest();
+    const now = Date.now();
+
+    await t.mutation(api.lib.create, {
+      tokenHash: "hash_list_effective_buffer_1",
+      tokenPrefix: "ak_",
+      tokenLast4: "2301",
+      namespace: "team_alpha",
+      expiresAt: now - 1,
+    });
+    await t.mutation(api.lib.create, {
+      tokenHash: "hash_list_effective_buffer_2",
+      tokenPrefix: "ak_",
+      tokenLast4: "2302",
+      namespace: "team_alpha",
+      expiresAt: now - 1,
+    });
+
+    const firstPage = await t.query(api.lib.listKeys, {
+      namespace: "team_alpha",
+      effectiveStatus: "expired",
+      now,
+      paginationOpts: { numItems: 1, cursor: null },
+    });
+    expect(firstPage.page).toHaveLength(1);
+    expect(firstPage.isDone).toBe(false);
+
+    const secondPage = await t.query(api.lib.listKeys, {
+      namespace: "team_alpha",
+      effectiveStatus: "expired",
+      now,
+      paginationOpts: { numItems: 1, cursor: firstPage.continueCursor },
+    });
+    expect(secondPage.page).toHaveLength(1);
+    expect(secondPage.page[0]?.keyId).not.toBe(firstPage.page[0]?.keyId);
+  });
+
+  test("listKeys rejects combining status and effectiveStatus", async () => {
+    const t = initConvexTest();
+
+    await expect(
+      t.query(api.lib.listKeys, {
+        status: "active",
+        effectiveStatus: "expired",
+        now: Date.now(),
+        paginationOpts: { numItems: 10, cursor: null },
+      }),
+    ).rejects.toMatchObject({
+      data: expect.stringContaining("status and effectiveStatus"),
+    });
+  });
+
   test("invalidate revokes key and writes event", async () => {
     const t = initConvexTest();
     const created = await t.mutation(api.lib.create, {

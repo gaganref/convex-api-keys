@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 
 import { describe, expect, test } from "vitest";
-import { api } from "./_generated/api.js";
+import { api, components } from "./_generated/api.js";
 import { initConvexTest } from "./setup.test.js";
 
 describe("keys", () => {
@@ -79,6 +79,47 @@ describe("keys", () => {
       },
     });
     expect(events.page.some((event) => event.type === "revoked")).toBe(true);
+  });
+
+  test("listKeys supports effectiveStatus filtering", async () => {
+    const t = initConvexTest();
+
+    await t.mutation(api.keys.createKey, {
+      workspace: "acme",
+      environment: "production",
+      name: "Expiring key",
+      permissions: ["events:write"],
+      ttlDays: null,
+      idleTimeoutMs: null,
+    });
+
+    const created = await t.mutation(api.keys.createKey, {
+      workspace: "acme",
+      environment: "production",
+      name: "Short TTL key",
+      permissions: ["events:write"],
+      ttlDays: null,
+      idleTimeoutMs: null,
+    });
+
+    await t.mutation(components.apiKeys.lib.update, {
+      keyId: created.keyId,
+      expiresAt: Date.now() - 1,
+    });
+
+    const filtered = await t.query(api.keys.listKeys, {
+      workspace: "acme",
+      environment: "production",
+      filter: "expired",
+      paginationOpts: {
+        numItems: 20,
+        cursor: null,
+      },
+    });
+
+    expect(filtered.page).toHaveLength(1);
+    expect(filtered.page[0]?.keyId).toBe(created.keyId);
+    expect(filtered.page[0]?.status).toBe("expired");
   });
 
   test("rotateKey returns new token and revokes old key", async () => {

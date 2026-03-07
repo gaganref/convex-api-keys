@@ -36,6 +36,13 @@ import { RotateKeyDialog } from "@/components/RotateKeyDialog";
 import { RevokeKeyDialog } from "@/components/RevokeKeyDialog";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import type { Environment } from "@/lib/namespace";
@@ -58,12 +65,27 @@ const STATUS_CONFIG: Record<
     dotClass: "bg-yellow-500",
     labelClass: "text-yellow-600 dark:text-yellow-400",
   },
+  idle_timeout: {
+    label: "Idle timeout",
+    dotClass: "bg-amber-500",
+    labelClass: "text-amber-600 dark:text-amber-400",
+  },
   revoked: {
     label: "Revoked",
     dotClass: "bg-red-500",
     labelClass: "text-red-600 dark:text-red-400",
   },
 };
+
+const FILTER_OPTIONS = [
+  { value: "all", label: "All keys" },
+  { value: "active", label: "Active" },
+  { value: "expired", label: "Expired" },
+  { value: "idle_timeout", label: "Idle timeout" },
+  { value: "revoked", label: "Revoked" },
+] as const;
+
+type KeyFilter = (typeof FILTER_OPTIONS)[number]["value"];
 
 function StatusDot({ status }: { status: KeyStatus }) {
   const config = STATUS_CONFIG[status];
@@ -92,9 +114,10 @@ type KeyTableProps = {
 export function KeyTable({ namespace }: KeyTableProps) {
   const { username } = useAuth();
   const workspace = username ?? "anonymous";
+  const [filter, setFilter] = useState<KeyFilter>("all");
   const { results, status, loadMore } = usePaginatedQuery(
     api.keys.listKeys,
-    { workspace, environment: namespace },
+    { workspace, environment: namespace, filter },
     { initialNumItems: PAGE_SIZE },
   );
   const [auditKey, setAuditKey] = useState<ApiKey | null>(null);
@@ -130,22 +153,58 @@ export function KeyTable({ namespace }: KeyTableProps) {
 
   if (keys.length === 0) {
     return (
-      <Empty className="py-12 border-0">
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <Key />
-          </EmptyMedia>
-          <EmptyTitle>No keys yet</EmptyTitle>
-          <EmptyDescription>
-            Create your first {namespace} key to get started.
-          </EmptyDescription>
-        </EmptyHeader>
-      </Empty>
+      <>
+        <div className="flex items-center justify-between gap-3 px-3 pt-3">
+          <p className="text-[11px] text-muted-foreground">
+            Filter keys by current effective status.
+          </p>
+          <Select value={filter} onValueChange={(value) => setFilter(value as KeyFilter)}>
+            <SelectTrigger size="sm" aria-label="Filter keys by effective status">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="end">
+              {FILTER_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Empty className="py-12 border-0">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Key />
+            </EmptyMedia>
+            <EmptyTitle>No keys yet</EmptyTitle>
+            <EmptyDescription>
+              Create your first {namespace} key to get started.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      </>
     );
   }
 
   return (
     <>
+      <div className="flex items-center justify-between gap-3 border-b px-3 py-2">
+        <p className="text-[11px] text-muted-foreground">
+          Filter keys by current effective status.
+        </p>
+        <Select value={filter} onValueChange={(value) => setFilter(value as KeyFilter)}>
+          <SelectTrigger size="sm" aria-label="Filter keys by effective status">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent align="end">
+            {FILTER_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
