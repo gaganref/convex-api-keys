@@ -149,9 +149,14 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             createdAt: number;
             eventId: string;
             keyId: string;
+            keyName?: string;
             metadata?: Record<string, any>;
             namespace?: string;
             reason?: string;
+            replacedKeyId?: string;
+            replacementKeyId?: string;
+            tokenLast4?: string;
+            tokenPrefix?: string;
             type: "created" | "revoked" | "rotated";
           }>;
         },
@@ -179,9 +184,14 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             createdAt: number;
             eventId: string;
             keyId: string;
+            keyName?: string;
             metadata?: Record<string, any>;
             namespace?: string;
             reason?: string;
+            replacedKeyId?: string;
+            replacementKeyId?: string;
+            tokenLast4?: string;
+            tokenPrefix?: string;
             type: "created" | "revoked" | "rotated";
           }>;
         },

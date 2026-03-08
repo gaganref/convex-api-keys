@@ -1,6 +1,6 @@
 # Convex API Keys
 
-[![npm version](https://badge.fury.io/js/@gaganref%2Fconvex-api-keys.svg)](https://badge.fury.io/js/@gaganref%2Fconvex-api-keys)
+[![npm version](https://badge.fury.io/js/convex-api-keys.svg)](https://badge.fury.io/js/convex-api-keys)
 
 <!-- START: Include on https://convex.dev/components -->
 
@@ -35,7 +35,7 @@ start.
 ## Installation
 
 ```sh
-npm install @gaganref/convex-api-keys
+npm install convex-api-keys
 ```
 
 Create a `convex.config.ts` file in your app's `convex/` folder and install the
@@ -44,7 +44,7 @@ component by calling `use`:
 ```ts
 // convex/convex.config.ts
 import { defineApp } from "convex/server";
-import apiKeys from "@gaganref/convex-api-keys/convex.config.js";
+import apiKeys from "convex-api-keys/convex.config.js";
 
 const app = defineApp();
 app.use(apiKeys);
@@ -58,7 +58,7 @@ Instantiate the client in a shared file:
 
 ```ts
 // convex/apiKeys.ts
-import { ApiKeys } from "@gaganref/convex-api-keys";
+import { ApiKeys } from "convex-api-keys";
 import { components } from "./_generated/api.js";
 
 export const apiKeys = new ApiKeys(components.apiKeys);
@@ -391,7 +391,7 @@ swallowed so they don't affect the main operation:
 
 ```ts
 // convex/apiKeys.ts
-import { ApiKeys } from "@gaganref/convex-api-keys";
+import { ApiKeys } from "convex-api-keys";
 import { components, internal } from "./_generated/api.js";
 
 export const apiKeys = new ApiKeys(components.apiKeys).withHooks({
@@ -402,7 +402,7 @@ export const apiKeys = new ApiKeys(components.apiKeys).withHooks({
 ```ts
 // convex/hooks.ts
 import { internalMutation } from "./_generated/server.js";
-import { onInvalidateHookPayloadValidator } from "@gaganref/convex-api-keys";
+import { onInvalidateHookPayloadValidator } from "convex-api-keys";
 
 export const onInvalidate = internalMutation({
   args: { event: onInvalidateHookPayloadValidator },

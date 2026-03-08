@@ -61,5 +61,5 @@ export declare const internal: FilterApi<
 >;
 
 export declare const components: {
-  apiKeys: import("@gaganref/convex-api-keys/_generated/component.js").ComponentApi<"apiKeys">;
+  apiKeys: import("convex-api-keys/_generated/component.js").ComponentApi<"apiKeys">;
 };

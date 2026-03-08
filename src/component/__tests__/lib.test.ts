@@ -593,6 +593,7 @@ describe("component lib", () => {
       tokenPrefix: "ak_",
       tokenLast4: "7001",
       namespace: "team_alpha",
+      name: "Events Key",
     });
     await t.mutation(api.lib.invalidate, {
       keyId: created.keyId,
@@ -606,8 +607,66 @@ describe("component lib", () => {
     });
 
     expect(result.page.length).toBeGreaterThanOrEqual(2);
-    expect(result.page.some((event) => event.type === "created")).toBe(true);
-    expect(result.page.some((event) => event.type === "revoked")).toBe(true);
+    const createdEvent = result.page.find((event) => event.type === "created");
+    const revokedEvent = result.page.find((event) => event.type === "revoked");
+    expect(createdEvent).toMatchObject({
+      keyName: "Events Key",
+      tokenPrefix: "ak_",
+      tokenLast4: "7001",
+    });
+    expect(revokedEvent).toMatchObject({
+      keyName: "Events Key",
+      tokenPrefix: "ak_",
+      tokenLast4: "7001",
+      reason: "manual",
+    });
+  });
+
+  test("refresh records replacement links in audit events", async () => {
+    const t = initConvexTest();
+    const now = Date.now();
+    const created = await t.mutation(api.lib.create, {
+      tokenHash: "hash_event_refresh_old",
+      tokenPrefix: "ak_",
+      tokenLast4: "7101",
+      namespace: "team_alpha",
+      name: "Rotating Key",
+    });
+
+    const refreshed = await t.mutation(api.lib.refresh, {
+      keyId: created.keyId,
+      tokenHash: "hash_event_refresh_new",
+      tokenPrefix: "rk_",
+      tokenLast4: "7102",
+      now,
+    });
+
+    expect(refreshed.ok).toBe(true);
+    if (!refreshed.ok) return;
+
+    const oldEvents = await t.query(api.lib.listKeyEvents, {
+      keyId: created.keyId,
+      paginationOpts: { numItems: 10, cursor: null },
+    });
+    const rotatedEvent = oldEvents.page.find((event) => event.type === "rotated");
+    expect(rotatedEvent).toMatchObject({
+      keyName: "Rotating Key",
+      tokenPrefix: "ak_",
+      tokenLast4: "7101",
+      replacementKeyId: refreshed.keyId,
+    });
+
+    const newEvents = await t.query(api.lib.listKeyEvents, {
+      keyId: refreshed.keyId,
+      paginationOpts: { numItems: 10, cursor: null },
+    });
+    const createdEvent = newEvents.page.find((event) => event.type === "created");
+    expect(createdEvent).toMatchObject({
+      keyName: "Rotating Key",
+      tokenPrefix: "rk_",
+      tokenLast4: "7102",
+      replacedKeyId: created.keyId,
+    });
   });
 
   test("listEvents filters by namespace", async () => {

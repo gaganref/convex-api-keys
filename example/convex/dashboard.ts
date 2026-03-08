@@ -156,7 +156,7 @@ export const dashboardData = query({
       recentAudit: scopedAuditEvents.map((event) => ({
         eventId: event.eventId,
         keyId: event.keyId,
-        keyName: keyNames[event.keyId] ?? "Unknown key",
+        keyName: event.keyName ?? keyNames[event.keyId] ?? "Unknown key",
         type: event.type,
         createdAt: event.createdAt,
       })),

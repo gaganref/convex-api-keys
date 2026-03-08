@@ -774,12 +774,59 @@ describe("list operations", () => {
       paginationOpts: { numItems: 10, cursor: null },
     });
 
-    expect(
-      events.page.some((event: { type: string }) => event.type === "created"),
-    ).toBe(true);
-    expect(
-      events.page.some((event: { type: string }) => event.type === "revoked"),
-    ).toBe(true);
+    const createdEvent = events.page.find((event) => event.type === "created");
+    const revokedEvent = events.page.find((event) => event.type === "revoked");
+    expect(createdEvent).toMatchObject({
+      keyName: "events me",
+      tokenPrefix: created.tokenPrefix,
+      tokenLast4: created.tokenLast4,
+    });
+    expect(revokedEvent).toMatchObject({
+      keyName: "events me",
+      tokenPrefix: created.tokenPrefix,
+      tokenLast4: created.tokenLast4,
+    });
+  });
+
+  test("refresh records audit event replacement links", async () => {
+    const t = initConvexTest();
+    const client = new ApiKeys<{ namespace: string }>(components.apiKeys, {});
+    const { mutationCtx, queryCtx } = ctxFrom(t);
+
+    const created = await client.create(mutationCtx, {
+      namespace: "team_alpha",
+      name: "rotating key",
+    });
+    const refreshed = await client.refresh(mutationCtx, {
+      keyId: created.keyId,
+    });
+
+    expect(refreshed.ok).toBe(true);
+    if (!refreshed.ok) return;
+
+    const oldEvents = await client.listKeyEvents(queryCtx, {
+      keyId: created.keyId,
+      paginationOpts: { numItems: 10, cursor: null },
+    });
+    const rotatedEvent = oldEvents.page.find((event) => event.type === "rotated");
+    expect(rotatedEvent).toMatchObject({
+      keyName: "rotating key",
+      tokenPrefix: created.tokenPrefix,
+      tokenLast4: created.tokenLast4,
+      replacementKeyId: refreshed.keyId,
+    });
+
+    const newEvents = await client.listKeyEvents(queryCtx, {
+      keyId: refreshed.keyId,
+      paginationOpts: { numItems: 10, cursor: null },
+    });
+    const createdEvent = newEvents.page.find((event) => event.type === "created");
+    expect(createdEvent).toMatchObject({
+      keyName: "rotating key",
+      tokenPrefix: refreshed.tokenPrefix,
+      tokenLast4: refreshed.tokenLast4,
+      replacedKeyId: created.keyId,
+    });
   });
 
   test("listKeyEvents with order asc returns created before revoked", async () => {

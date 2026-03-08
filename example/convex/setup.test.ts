@@ -2,7 +2,7 @@
 import { test } from "vitest";
 import { convexTest } from "convex-test";
 import schema from "./schema.js";
-import component from "@gaganref/convex-api-keys/test";
+import component from "convex-api-keys/test";
 
 const modules = import.meta.glob("./**/*.*s");
 

@@ -27,6 +27,9 @@ export const apiKeysFields = {
 export const apiKeyEventsFields = {
   keyId: v.id("apiKeys"),
   namespace: v.optional(v.string()),
+  keyName: v.optional(v.string()),
+  tokenPrefix: v.optional(v.string()),
+  tokenLast4: v.optional(v.string()),
   type: v.union(
     v.literal("created"),
     v.literal("revoked"),
@@ -34,6 +37,8 @@ export const apiKeyEventsFields = {
   ),
   reason: v.optional(v.string()),
   metadata: v.optional(metadataValidator),
+  replacedKeyId: v.optional(v.id("apiKeys")),
+  replacementKeyId: v.optional(v.id("apiKeys")),
 };
 
 export default defineSchema({

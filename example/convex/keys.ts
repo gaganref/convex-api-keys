@@ -67,6 +67,9 @@ const listKeysResultValidator = v.object({
 const listedEventValidator = v.object({
   eventId: v.string(),
   keyId: v.string(),
+  keyName: v.optional(v.string()),
+  tokenPrefix: v.optional(v.string()),
+  tokenLast4: v.optional(v.string()),
   type: v.union(
     v.literal("created"),
     v.literal("revoked"),
@@ -74,6 +77,8 @@ const listedEventValidator = v.object({
   ),
   reason: v.optional(v.string()),
   metadata: v.optional(v.record(v.string(), v.any())),
+  replacedKeyId: v.optional(v.string()),
+  replacementKeyId: v.optional(v.string()),
   createdAt: v.number(),
 });
 
@@ -454,9 +459,14 @@ export const listKeyEvents = query({
       page: result.page.map((event) => ({
         eventId: event.eventId,
         keyId: event.keyId,
+        keyName: event.keyName,
+        tokenPrefix: event.tokenPrefix,
+        tokenLast4: event.tokenLast4,
         type: event.type,
         reason: event.reason,
         metadata: event.metadata,
+        replacedKeyId: event.replacedKeyId,
+        replacementKeyId: event.replacementKeyId,
         createdAt: event.createdAt,
       })),
     };

@@ -41,7 +41,7 @@ export const sweepExpired = internalMutation({
     let swept = 0;
     for (const key of result.page) {
       if (key.expiresAt !== undefined && key.expiresAt < now) {
-        await markAsRevoked(ctx, key._id, key.namespace, now, "expired");
+        await markAsRevoked(ctx, key, now, "expired");
         swept++;
       }
     }
@@ -82,7 +82,7 @@ export const sweepIdleExpired = internalMutation({
     let swept = 0;
     for (const key of result.page) {
       if (isIdleExpired(key, now)) {
-        await markAsRevoked(ctx, key._id, key.namespace, now, "idle_timeout");
+        await markAsRevoked(ctx, key, now, "idle_timeout");
         swept++;
       }
     }
@@ -99,20 +99,28 @@ export const sweepIdleExpired = internalMutation({
 
 async function markAsRevoked(
   ctx: MutationCtx,
-  keyId: Id<"apiKeys">,
-  namespace: string | undefined,
+  key: {
+    _id: Id<"apiKeys">;
+    namespace?: string;
+    name?: string;
+    tokenPrefix: string;
+    tokenLast4: string;
+  },
   now: number,
   reason: string,
 ): Promise<void> {
-  await ctx.db.patch(keyId, {
+  await ctx.db.patch(key._id, {
     status: "revoked" as const,
     revokedAt: now,
     revocationReason: reason,
     updatedAt: now,
   });
   await ctx.db.insert("apiKeyEvents", {
-    keyId,
-    namespace,
+    keyId: key._id,
+    namespace: key.namespace,
+    keyName: key.name,
+    tokenPrefix: key.tokenPrefix,
+    tokenLast4: key.tokenLast4,
     type: "revoked",
     reason,
   });

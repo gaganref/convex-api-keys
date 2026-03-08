@@ -1,5 +1,5 @@
 import { defineApp } from "convex/server";
-import apiKeys from "@gaganref/convex-api-keys/convex.config.js";
+import apiKeys from "convex-api-keys/convex.config.js";
 
 const app = defineApp();
 app.use(apiKeys);

@@ -184,7 +184,7 @@ function logWithLevel(
  * is required on creation.
  *
  * ```ts
- * import { ApiKeys } from "@gaganref/convex-api-keys";
+ * import { ApiKeys } from "convex-api-keys";
  * import { components } from "./_generated/api.js";
  *
  * export const apiKeys = new ApiKeys(components.apiKeys, {

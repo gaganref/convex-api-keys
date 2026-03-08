@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internalMutation } from "./_generated/server.js";
-import { onInvalidateHookPayloadValidator } from "@gaganref/convex-api-keys";
+import { onInvalidateHookPayloadValidator } from "convex-api-keys";
 
 export const onInvalidate = internalMutation({
   args: {

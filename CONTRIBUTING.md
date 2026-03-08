@@ -24,7 +24,7 @@ npm run test
 ```sh
 npm run clean
 npm ci
-npm pack
+npm run release:check
 ```
 
 ### Deploying a new version

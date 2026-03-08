@@ -143,9 +143,14 @@ function mapEventRow(event: Doc<"apiKeyEvents">) {
     eventId: event._id,
     keyId: event.keyId,
     namespace: event.namespace,
+    keyName: event.keyName,
+    tokenPrefix: event.tokenPrefix,
+    tokenLast4: event.tokenLast4,
     type: event.type,
     reason: event.reason,
     metadata: event.metadata,
+    replacedKeyId: event.replacedKeyId,
+    replacementKeyId: event.replacementKeyId,
     createdAt: event._creationTime,
   };
 }
@@ -157,21 +162,23 @@ function throwDuplicateTokenHashError(): never {
   });
 }
 
-async function recordEvent(
-  ctx: MutationCtx,
-  keyId: Id<"apiKeys">,
-  namespace: string | undefined,
-  type: "created" | "revoked" | "rotated",
-  reason?: string,
-  metadata?: Record<string, any>,
-): Promise<void> {
-  await ctx.db.insert("apiKeyEvents", {
-    keyId,
-    namespace,
-    type,
-    reason,
-    metadata,
-  });
+type EventType = "created" | "revoked" | "rotated";
+
+type EventSnapshot = {
+  keyId: Id<"apiKeys">;
+  namespace?: string;
+  keyName?: string;
+  tokenPrefix?: string;
+  tokenLast4?: string;
+  type: EventType;
+  reason?: string;
+  metadata?: Record<string, any>;
+  replacedKeyId?: Id<"apiKeys">;
+  replacementKeyId?: Id<"apiKeys">;
+};
+
+async function recordEvent(ctx: MutationCtx, event: EventSnapshot): Promise<void> {
+  await ctx.db.insert("apiKeyEvents", event);
 }
 
 // ---------------------------------------------------------------------------
@@ -309,6 +316,9 @@ const listEventItemValidator = v.object({
   eventId: v.id("apiKeyEvents"),
   keyId: v.id("apiKeys"),
   namespace: v.optional(v.string()),
+  keyName: v.optional(v.string()),
+  tokenPrefix: v.optional(v.string()),
+  tokenLast4: v.optional(v.string()),
   type: v.union(
     v.literal("created"),
     v.literal("revoked"),
@@ -316,6 +326,8 @@ const listEventItemValidator = v.object({
   ),
   reason: v.optional(v.string()),
   metadata: v.optional(metadataValidator),
+  replacedKeyId: v.optional(v.id("apiKeys")),
+  replacementKeyId: v.optional(v.id("apiKeys")),
   createdAt: v.number(),
 });
 
@@ -398,14 +410,15 @@ export const create = mutation({
       updatedAt: now,
     });
 
-    await recordEvent(
-      ctx,
+    await recordEvent(ctx, {
       keyId,
-      args.namespace,
-      "created",
-      undefined,
-      args.metadata,
-    );
+      namespace: args.namespace,
+      keyName: args.name,
+      tokenPrefix: args.tokenPrefix,
+      tokenLast4: args.tokenLast4,
+      type: "created",
+      metadata: args.metadata,
+    });
 
     if (args.logLevel === "debug") {
       console.log("[api-keys:create]", { keyId, namespace: args.namespace });
@@ -735,14 +748,16 @@ export const invalidate = mutation({
       updatedAt: args.now,
     });
 
-    await recordEvent(
-      ctx,
-      key._id,
-      key.namespace,
-      "revoked",
-      args.reason,
-      args.metadata,
-    );
+    await recordEvent(ctx, {
+      keyId: key._id,
+      namespace: key.namespace,
+      keyName: key.name,
+      tokenPrefix: key.tokenPrefix,
+      tokenLast4: key.tokenLast4,
+      type: "revoked",
+      reason: args.reason,
+      metadata: args.metadata,
+    });
 
     if (args.logLevel === "debug") {
       console.log("[api-keys:invalidate]", { keyId: key._id });
@@ -796,14 +811,16 @@ export const invalidateAll = mutation({
         updatedAt: args.now,
       });
 
-      await recordEvent(
-        ctx,
-        key._id,
-        key.namespace,
-        "revoked",
-        args.reason,
-        args.metadata,
-      );
+      await recordEvent(ctx, {
+        keyId: key._id,
+        namespace: key.namespace,
+        keyName: key.name,
+        tokenPrefix: key.tokenPrefix,
+        tokenLast4: key.tokenLast4,
+        type: "revoked",
+        reason: args.reason,
+        metadata: args.metadata,
+      });
     }
 
     const processed = result.page.length;
@@ -972,22 +989,27 @@ export const refresh = mutation({
       updatedAt: args.now,
     });
 
-    await recordEvent(
-      ctx,
-      key._id,
-      key.namespace,
-      "rotated",
-      args.reason,
-      args.metadata,
-    );
-    await recordEvent(
-      ctx,
-      newKeyId,
-      key.namespace,
-      "created",
-      undefined,
-      key.metadata,
-    );
+    await recordEvent(ctx, {
+      keyId: key._id,
+      namespace: key.namespace,
+      keyName: key.name,
+      tokenPrefix: key.tokenPrefix,
+      tokenLast4: key.tokenLast4,
+      type: "rotated",
+      reason: args.reason,
+      metadata: args.metadata,
+      replacementKeyId: newKeyId,
+    });
+    await recordEvent(ctx, {
+      keyId: newKeyId,
+      namespace: key.namespace,
+      keyName: key.name,
+      tokenPrefix: args.tokenPrefix,
+      tokenLast4: args.tokenLast4,
+      type: "created",
+      metadata: key.metadata,
+      replacedKeyId: key._id,
+    });
 
     if (args.logLevel === "debug") {
       console.log("[api-keys:refresh]", { oldKeyId: key._id, newKeyId });

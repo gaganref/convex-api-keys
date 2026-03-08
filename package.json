@@ -1,12 +1,12 @@
 {
-  "name": "@gaganref/convex-api-keys",
+  "name": "convex-api-keys",
   "description": "A Convex component for API key management.",
   "repository": "github:gaganref/convex-api-keys",
   "homepage": "https://github.com/gaganref/convex-api-keys#readme",
   "bugs": {
     "url": "https://github.com/gaganref/convex-api-keys/issues"
   },
-  "version": "0.1.1",
+  "version": "0.2.0",
   "license": "Apache-2.0",
   "keywords": [
     "convex",
@@ -27,6 +27,7 @@
     "build": "tsc --project ./tsconfig.build.json",
     "build:codegen": "npx convex codegen --component-dir ./src/component && npm run build",
     "build:clean": "rm -rf dist *.tsbuildinfo && npm run build:codegen",
+    "release:check": "run-p build:codegen test lint typecheck && npm pack",
     "typecheck": "tsc --noEmit && tsc -p example && tsc -p example/convex",
     "lint": "eslint .",
     "all": "run-p -r 'dev:*' 'test:watch'",

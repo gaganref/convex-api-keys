@@ -1,4 +1,4 @@
-import { ApiKeys } from "@gaganref/convex-api-keys";
+import { ApiKeys } from "convex-api-keys";
 import { components, internal } from "./_generated/api.js";
 
 export const apiKeys = new ApiKeys<{
