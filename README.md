@@ -1,6 +1,7 @@
 # Convex API Keys
 
-[![npm version](https://badge.fury.io/js/convex-api-keys.svg)](https://badge.fury.io/js/convex-api-keys)
+[![npm version](https://badge.fury.io/js/convex-api-keys.svg)](https://www.npmjs.com/package/convex-api-keys)
+[![Convex Component](https://www.convex.dev/components/badge/convex-api-keys)](https://www.convex.dev/components/convex-api-keys)
 
 <!-- START: Include on https://convex.dev/components -->
 
