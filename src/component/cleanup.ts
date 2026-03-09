@@ -49,12 +49,11 @@ async function cleanupEventsImpl(ctx: MutationCtx, retentionMs: number) {
   assertRetentionMs(retentionMs);
   const cutoff = Date.now() - retentionMs;
 
-  const oldestEvents = await ctx.db
+  const toDelete = await ctx.db
     .query("apiKeyEvents")
+    .withIndex("by_creation_time", (q) => q.lt("_creationTime", cutoff))
     .order("asc")
     .take(BATCH_SIZE);
-
-  const toDelete = oldestEvents.filter((event) => event._creationTime < cutoff);
 
   for (const event of toDelete) {
     await ctx.db.delete(event._id);

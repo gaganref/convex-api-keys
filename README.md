@@ -281,6 +281,8 @@ if (result.ok) {
   // result.token — new plaintext token
   // result.keyId — new key ID
   // result.replacedKeyId — old key ID
+} else {
+  // result.reason: "not_found" | "revoked" | "expired" | "idle_timeout"
 }
 ```
 

@@ -560,21 +560,21 @@ export const listKeys = query({
         const result =
           args.namespace !== undefined
             ? await pages
-                .withIndex("by_namespace_and_status", (q) =>
-                  q.eq("namespace", args.namespace).eq("status", storedStatus),
-                )
-                .order(order)
-                .paginate({
-                  numItems: scanBatchSize,
-                  cursor: sourceCursor,
-                })
+              .withIndex("by_namespace_and_status", (q) =>
+                q.eq("namespace", args.namespace).eq("status", storedStatus),
+              )
+              .order(order)
+              .paginate({
+                numItems: scanBatchSize,
+                cursor: sourceCursor,
+              })
             : await pages
-                .withIndex("by_status", (q) => q.eq("status", storedStatus))
-                .order(order)
-                .paginate({
-                  numItems: scanBatchSize,
-                  cursor: sourceCursor,
-                });
+              .withIndex("by_status", (q) => q.eq("status", storedStatus))
+              .order(order)
+              .paginate({
+                numItems: scanBatchSize,
+                cursor: sourceCursor,
+              });
 
         sourceCursor = result.continueCursor;
         sourceDone = result.isDone;
@@ -707,9 +707,9 @@ export const listEvents = query({
       args.namespace === undefined
         ? await pages.order(order).paginate(args.paginationOpts)
         : await pages
-            .withIndex("by_namespace", (q) => q.eq("namespace", args.namespace))
-            .order(order)
-            .paginate(args.paginationOpts);
+          .withIndex("by_namespace", (q) => q.eq("namespace", args.namespace))
+          .order(order)
+          .paginate(args.paginationOpts);
 
     return {
       isDone: result.isDone,
@@ -787,15 +787,15 @@ export const invalidateAll = mutation({
     const result =
       args.namespace !== undefined
         ? await pages
-            .withIndex("by_namespace_and_status", (q) =>
-              q.eq("namespace", args.namespace).eq("status", "active"),
-            )
-            .order("desc")
-            .paginate(args.paginationOpts)
+          .withIndex("by_namespace_and_status", (q) =>
+            q.eq("namespace", args.namespace).eq("status", "active"),
+          )
+          .order("desc")
+          .paginate(args.paginationOpts)
         : await pages
-            .withIndex("by_status", (q) => q.eq("status", "active"))
-            .order("desc")
-            .paginate(args.paginationOpts);
+          .withIndex("by_status", (q) => q.eq("status", "active"))
+          .order("desc")
+          .paginate(args.paginationOpts);
 
     const toInvalidate = result.page.filter(
       (key) =>
@@ -933,7 +933,9 @@ export const update = mutation({
  * Rotates a key by revoking the old key and creating a replacement.
  *
  * The replacement preserves the current absolute `expiresAt` timestamp rather
- * than renewing the original TTL window from the time of rotation.
+ * than renewing the original TTL window from the time of rotation. Returns
+ * `not_found`, `revoked`, `expired`, or `idle_timeout` when the source key
+ * cannot be rotated.
  */
 export const refresh = mutation({
   args: {

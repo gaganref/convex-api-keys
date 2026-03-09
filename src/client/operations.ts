@@ -707,7 +707,7 @@ export class ApiKeys<
    *   metadata. See {@link RefreshArgs}.
    * @returns On success: `{ ok: true, keyId, token, ... }` with the new
    *   plaintext token. On failure: `{ ok: false, reason }` if the key is
-   *   not found or inactive.
+   *   `not_found`, `revoked`, `expired`, or `idle_timeout`.
    */
   async refresh(
     ctx: RunMutationCtx,
