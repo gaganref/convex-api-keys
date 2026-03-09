@@ -1,11 +1,20 @@
 # Changelog
 
+## 0.2.1
+
+## 0.2.1
+
+- Clarify refresh failure reasons in the docs.
+- Use Convex's `by_creation_time` system index for audit event cleanup.
+- Add the Convex component badge and npm package link to the README.
+
 ## 0.2.0
 
 - Rename the package to `convex-api-keys`.
 - Add typed `effectiveStatus` filtering with cursor-safe pagination.
 - Add `keyDefaults.keyLengthBytes` for configurable token entropy length.
-- Split cleanup into `cleanupKeys` and `cleanupEvents` so audit events can outlive deleted keys.
+- Split cleanup into `cleanupKeys` and `cleanupEvents` so audit events can
+  outlive deleted keys.
 - Enrich audit events with immutable key snapshots and rotation linkage fields.
 - Tighten client typing across `getKey`, `listKeys`, and `update`.
 
